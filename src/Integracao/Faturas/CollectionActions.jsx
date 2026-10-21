@@ -1,0 +1,94 @@
+import React, { useState } from 'react';
+import {
+    IconButton, Menu, MenuItem, useMediaQuery, useTheme,
+} from '@mui/material';
+import Tooltip from '@mui/material/Tooltip';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { useNavigate } from 'react-router-dom';
+import { makeStyles } from '@mui/styles';
+import RemoveDialog from '../../common/components/RemoveDialog';
+import { useTranslation } from '../../common/components/LocalizationProvider';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+
+const useStyles = makeStyles(() => ({
+    row: {
+        display: 'flex',
+    },
+}));
+
+const CollectionActions = ({
+    itemId, editPath, endpoint, setTimestamp, customActions, readonly,
+}) => {
+    const theme = useTheme();
+    const classes = useStyles();
+    const navigate = useNavigate();
+    const t = useTranslation();
+
+    const phone = useMediaQuery(theme.breakpoints.down('sm'));
+
+    const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+    const [removing, setRemoving] = useState(false);
+
+    const handleEdit = () => {
+        navigate(`${editPath}/${itemId}`);
+        setMenuAnchorEl(null);
+    };
+
+    const handleRemove = () => {
+        setRemoving(true);
+        setMenuAnchorEl(null);
+    };
+
+    const handleCustom = (action) => {
+        action.handler(itemId);
+        setMenuAnchorEl(null);
+    };
+
+    const handleRemoveResult = (removed) => {
+        setRemoving(false);
+        if (removed) {
+            setTimestamp(Date.now());
+        }
+    };
+
+    const abrirNovaAba = () => {
+        window.open(editPath, '_blank');
+    }
+
+    return (
+        <>
+            {phone ? (
+                <>
+                    <IconButton size="small" onClick={(event) => setMenuAnchorEl(event.currentTarget)}>
+                        <MoreVertIcon fontSize="small" />
+                    </IconButton>
+                    <Menu open={!!menuAnchorEl} anchorEl={menuAnchorEl} onClose={() => setMenuAnchorEl(null)}>
+
+                        {!readonly && (
+                            <>
+                                <MenuItem onClick={abrirNovaAba}>{'PDF'}</MenuItem>
+                            </>
+                        )}
+                    </Menu>
+                </>
+            ) : (
+                <div className={classes.row}>
+                    {!readonly && (
+                        <>
+                            <Tooltip title={t('sharedEdit')}>
+                                <IconButton size="small" onClick={abrirNovaAba} >
+                                    <PictureAsPdfIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </>
+                    )}
+                </div>
+            )}
+            <RemoveDialog style={{ transform: 'none' }} open={removing} endpoint={endpoint} itemId={itemId} onResult={handleRemoveResult} />
+        </>
+    );
+};
+
+export default CollectionActions;
