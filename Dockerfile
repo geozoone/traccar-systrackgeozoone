@@ -8,7 +8,10 @@ FROM node:18-bullseye
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+# Dependencias primero (aprovecha la caché de capas).
+# ⚠️ .npmrc ES IMPRESCINDIBLE aquí: activa legacy-peer-deps
+# (sin él, npm moderno rechaza @mui/styles + React 18)
+COPY package.json package-lock.json .npmrc ./
 RUN npm install
 
 COPY . .
