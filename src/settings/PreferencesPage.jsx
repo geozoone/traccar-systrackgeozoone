@@ -63,10 +63,11 @@ const PreferencesPage = () => {
   const readonly = useRestriction('readonly');
 
   const user = useSelector((state) => state.session.user);
-  const [attributes, setAttributes] = useState(user.attributes);
+  const [attributes, setAttributes] = useState(user?.attributes || {});
 
-  const versionApp = import.meta.env.VITE_APP_VERSION.slice(0, -2);
-  const versionServer = useSelector((state) => state.session.server.version);
+  const rawVersion = import.meta.env.VITE_APP_VERSION || '6.16';
+  const versionApp = rawVersion.length > 2 ? rawVersion.slice(0, -2) : rawVersion;
+  const versionServer = useSelector((state) => state.session.server?.version);
   const socket = useSelector((state) => state.session.socket);
 
   const [token, setToken] = useState(null);

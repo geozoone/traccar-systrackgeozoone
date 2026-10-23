@@ -37,7 +37,8 @@ export default defineConfig(({ mode }) => {
 			outDir: 'build',
 		},
 		define: {
-			'process.env': JSON.stringify(env)
+			'process.env': JSON.stringify(env),
+			'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env.npm_package_version || '6.16'),
 		},
 		plugins: [
 			svgr(),
