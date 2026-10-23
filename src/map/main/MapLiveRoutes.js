@@ -9,40 +9,61 @@ const MapLiveRoutes = () => {
 
   const theme = useTheme();
 
-  const type = useAttributePreference('mapLiveRoutes', 'none');
+  const type = useAttributePreference('mapLiveRoutes', 'selected');
 
   const devices = useSelector((state) => state.devices.items);
   const selectedDeviceId = useSelector((state) => state.devices.selectedId);
 
   const history = useSelector((state) => state.session.history);
 
+  const pointsId = `${id}-points`;
+
   useEffect(() => {
     if (type !== 'none') {
       map.addSource(id, {
         type: 'geojson',
         data: {
-          type: 'Feature',
-          geometry: {
-            type: 'LineString',
-            coordinates: [],
-          },
+          type: 'FeatureCollection',
+          features: [],
         },
       });
+
+      // Capa de línea que conecta los últimos 10 puntos (trayectoria)
       map.addLayer({
         source: id,
         id,
         type: 'line',
+        filter: ['==', '$type', 'LineString'],
         layout: {
           'line-join': 'round',
           'line-cap': 'round',
         },
         paint: {
           'line-color': ['get', 'color'],
-          'line-width': 2,
+          'line-width': 3,
+          'line-opacity': 0.85,
+        },
+      });
+
+      // Capa de puntos circulares (estilo OpenGTS) para marcar cada uno de los 10 puntos
+      map.addLayer({
+        source: id,
+        id: pointsId,
+        type: 'circle',
+        filter: ['==', '$type', 'Point'],
+        paint: {
+          'circle-radius': 5,
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff',
+          'circle-opacity': 0.9,
         },
       });
 
       return () => {
+        if (map.getLayer(pointsId)) {
+          map.removeLayer(pointsId);
+        }
         if (map.getLayer(id)) {
           map.removeLayer(id);
         }
@@ -52,30 +73,55 @@ const MapLiveRoutes = () => {
       };
     }
     return () => {};
-  }, [type]);
+  }, [type, id, pointsId]);
 
   useEffect(() => {
     if (type !== 'none') {
       const deviceIds = Object.values(devices)
         .map((device) => device.id)
-        .filter((id) => (type === 'selected' ? id === selectedDeviceId : true))
-        .filter((id) => history.hasOwnProperty(id));
+        .filter((deviceId) => (type === 'selected' ? deviceId === selectedDeviceId : true))
+        .filter((deviceId) => history.hasOwnProperty(deviceId));
+
+      const features = [];
+
+      deviceIds.forEach((deviceId) => {
+        const coords = history[deviceId] || [];
+        const color = devices[deviceId]?.attributes?.['web.reportColor'] || theme.palette.geometry?.main || '#2196f3';
+
+        // 1. Línea que conecta los puntos
+        if (coords.length > 1) {
+          features.push({
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: coords,
+            },
+            properties: { color },
+          });
+        }
+
+        // 2. Cada punto individual (últimos 10 puntos como en OpenGTS)
+        coords.forEach((coord, idx) => {
+          features.push({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: coord,
+            },
+            properties: {
+              color,
+              index: idx + 1,
+            },
+          });
+        });
+      });
 
       map.getSource(id)?.setData({
         type: 'FeatureCollection',
-        features: deviceIds.map((deviceId) => ({
-          type: 'Feature',
-          geometry: {
-            type: 'LineString',
-            coordinates: history[deviceId],
-          },
-          properties: {
-            color: devices[deviceId].attributes['web.reportColor'] || theme.palette.geometry.main,
-          },
-        })),
+        features,
       });
     }
-  }, [theme, type, devices, selectedDeviceId, history]);
+  }, [theme, type, devices, selectedDeviceId, history, id]);
 
   return null;
 };

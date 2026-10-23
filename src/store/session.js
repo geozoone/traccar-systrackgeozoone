@@ -20,8 +20,8 @@ const { reducer, actions } = createSlice({
             state.socket = action.payload;
         },
         updatePositions(state, action) {
-            const liveRoutes = state.user.attributes.mapLiveRoutes || state.server.attributes.mapLiveRoutes || 'none';
-            const liveRoutesLimit = state.user.attributes['web.liveRouteLength'] || state.server.attributes['web.liveRouteLength'] || 10;
+            const liveRoutes = state.user?.attributes?.mapLiveRoutes || state.server?.attributes?.mapLiveRoutes || 'selected';
+            const liveRoutesLimit = state.user?.attributes?.['web.liveRouteLength'] || state.server?.attributes?.['web.liveRouteLength'] || 10;
             action.payload.forEach((position) => {
                 state.positions[position.deviceId] = position;
                 if (liveRoutes !== 'none') {
@@ -30,10 +30,12 @@ const { reducer, actions } = createSlice({
                     if (!last || (last[0] !== position.longitude && last[1] !== position.latitude)) {
                         state.history[position.deviceId] = [...route.slice(1 - liveRoutesLimit), [position.longitude, position.latitude]];
                     }
-                } else {
-                    state.history = {};
                 }
             });
+        },
+        setHistory(state, action) {
+            const { deviceId, coordinates } = action.payload;
+            state.history[deviceId] = coordinates;
         },
     },
 });
