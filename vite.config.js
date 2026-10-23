@@ -52,9 +52,9 @@ export default defineConfig(({ mode }) => {
 					navigateFallbackDenylist: [/^\/api/],
 				},
 				manifest: {
-					short_name: '${title}',
-					name: '${description}',
-					theme_color: '${colorPrimary}',
+					short_name: 'Geozoone',
+					name: 'Geozoone GPS Tracking System',
+					theme_color: '#282833',
 					icons: [
 						{
 							src: 'pwa-64x64.png',
