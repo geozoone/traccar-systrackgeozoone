@@ -61,30 +61,37 @@ const WhatsApp = () => {
     const getQR = useCatch(async () => {
         Container(<img width='50%' src="/imagens/spinner.gif"></img>);
 
-        const connectionState = await fetch('/modulo/whats/status', {
-            headers: { "Content-Type": "application/json"},
-        });
-        
-        const obj = await connectionState.json();
+        try {
+            const connectionState = await fetch('/modulo/whats/status', {
+                headers: { "Content-Type": "application/json"},
+            });
+            
+            if (!connectionState.ok) {
+                ApiWhatsOff();
+                return;
+            }
 
-        if (obj.status == "open" || obj.status == "connecting") {
-            WhatsOnline();
+            const obj = await connectionState.json();
 
-            return
+            if (obj.status == "open" || obj.status == "connecting") {
+                WhatsOnline();
+                return;
+            }
+
+            const response = await fetch(`/modulo/whats/connect`, {
+                headers: { "Content-Type": "application/json" }
+            });
+
+            if (response.status == 200) {
+                const QR = await response.json();
+                Container(<img width='50%' src={QR.base64}></img>);
+                return;
+            }
+
+            create();
+        } catch (e) {
+            ApiWhatsOff();
         }
-
-        const response = await fetch(`/modulo/whats/connect`, {
-            headers: { "Content-Type": "application/json" }
-        });
-
-        if (response.status == 200) {
-            const QR = await response.json();
-            Container(<img width='50%' src={QR.base64}></img>);
-
-            return
-        }
-
-        create();
     })
 
     const create = useCatch(async () => {
@@ -123,24 +130,33 @@ const WhatsApp = () => {
     })
 
     useEffectAsync(async () => {
-        const response = await fetch('/modulo/whats/status', {
-            headers: { "Content-Type": "application/json"},
-        });
+        try {
+            const response = await fetch('/modulo/whats/status', {
+                headers: { "Content-Type": "application/json"},
+            });
 
-        let status = await response.json();
-
-        switch (status.status) {
-            case "open":
-                WhatsOnline();
-                break;
-
-            case "apiOff":
+            if (!response.ok) {
                 ApiWhatsOff();
-                break;
+                return;
+            }
 
-            default:
-                WhatsOffline();
-                break;
+            let status = await response.json();
+
+            switch (status?.status) {
+                case "open":
+                    WhatsOnline();
+                    break;
+
+                case "apiOff":
+                    ApiWhatsOff();
+                    break;
+
+                default:
+                    WhatsOffline();
+                    break;
+            }
+        } catch (e) {
+            ApiWhatsOff();
         }
     }, []);
 
