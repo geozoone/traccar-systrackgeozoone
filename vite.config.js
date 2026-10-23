@@ -45,6 +45,9 @@ export default defineConfig(({ mode }) => {
 			react(),
 			VitePWA({
 				registerType: 'autoUpdate',
+				devOptions: {
+					enabled: true,
+				},
 				workbox: {
 					navigateFallbackDenylist: [/^\/api/],
 				},
