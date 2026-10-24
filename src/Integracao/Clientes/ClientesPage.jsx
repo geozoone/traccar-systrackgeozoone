@@ -96,11 +96,12 @@ const ClientesPage = () => {
                 let Clientes = await response.json();
 
                 Clientes.sort((a, b) => {
-                    if (a.name < b.name) {
-                        return -1;
-                    } else {
-                        return true;
+                    const empresaA = (a.attributes?.empresa || a.attributes?.informacoes?.empresa || a.name || '').toLowerCase();
+                    const empresaB = (b.attributes?.empresa || b.attributes?.informacoes?.empresa || b.name || '').toLowerCase();
+                    if (empresaA !== empresaB) {
+                        return empresaA.localeCompare(empresaB);
                     }
+                    return (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase());
                 });
 
                 let listClientes = [];
@@ -135,8 +136,9 @@ const ClientesPage = () => {
             <Table className={classes.table}>
                 <TableHead>
                     <TableRow>
-                        <TableCell>{t('sharedName')}</TableCell>
-                        <TableCell>{"CPF"}</TableCell>
+                        <TableCell>{"Empresa / Cliente"}</TableCell>
+                        <TableCell>{"Usuario / Contacto"}</TableCell>
+                        <TableCell>{"RUC / DNI"}</TableCell>
                         <TableCell>{t('sharedPhone')}</TableCell>
                         <TableCell>{t('userEmail')}</TableCell>   
                         <TableCell>{t('sharedDisabled')}</TableCell>
@@ -147,8 +149,20 @@ const ClientesPage = () => {
                 <TableBody>
                     {!loading ? currentTableData.filter(filterByKeyword(searchKeyword)).map((item) => (
                         <TableRow key={item.id}>
-                            <TableCell>{item.name}</TableCell>
-                            <TableCell>{(item.attributes.informacoes && item.attributes.informacoes.cpf) || ''}</TableCell>
+                            <TableCell>
+                                <strong>
+                                    {item.attributes?.empresa || (item.attributes?.informacoes && item.attributes.informacoes.empresa) || item.name}
+                                </strong>
+                            </TableCell>
+                            <TableCell>
+                                {item.name}
+                                {(item.attributes?.cargo || (item.attributes?.informacoes && item.attributes.informacoes.cargo)) && (
+                                    <div style={{ fontSize: '0.82em', color: '#666' }}>
+                                        {item.attributes?.cargo || item.attributes?.informacoes?.cargo}
+                                    </div>
+                                )}
+                            </TableCell>
+                            <TableCell>{(item.attributes?.informacoes && item.attributes.informacoes.cpf) || ''}</TableCell>
                             <TableCell>{item.phone}</TableCell>
                             <TableCell>{item.email}</TableCell>
                             <TableCell>{formatBoolean(item.disabled, t)}</TableCell>                            
@@ -156,7 +170,7 @@ const ClientesPage = () => {
                             <TableCell className={classes.columnAction} padding="none">
                                 <CollectionActions
                                     itemId={item.id}
-                                    idasaas={item.attributes.idasaas}
+                                    idasaas={item.attributes?.idasaas}
                                     editPath="/settings/cliente"
                                     endpoint="users"
                                     setTimestamp={setTimestamp}
@@ -164,7 +178,7 @@ const ClientesPage = () => {
                                 />
                             </TableCell>
                         </TableRow>
-                    )) : (<TableShimmer columns={6} endAction />)}
+                    )) : (<TableShimmer columns={7} endAction />)}
 
 
                 </TableBody>

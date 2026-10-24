@@ -242,80 +242,190 @@ const ClientePage = () => {
                     <Accordion defaultExpanded={!attribute}>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                             <Typography variant="subtitle1">
-                                Informações
+                                Información del Cliente y Empresa
                             </Typography>
                         </AccordionSummary>
 
                         <AccordionDetails className={'m-3 form-row'} >
-                            <span className={`form-group col-sm-12 ${classes.details} `}>
-                                <TextField
-                                    value={item.name || ''}
-                                    onChange={(event) => setItem({ ...item, name: event.target.value })}
-                                    label={t('sharedName')}
-                                />
-                            </span>
                             <span className={`form-group col-sm-6 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.informacoes && item.attributes.informacoes.cpf) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, informacoes: { ...item.attributes.informacoes, cpf: e.target.value } } })}
-                                    label={'CPF'}
-                                    type={'number'}
+                                    value={item.attributes?.empresa || (item.attributes?.informacoes && item.attributes.informacoes.empresa) || ''}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setItem({
+                                            ...item,
+                                            attributes: {
+                                                ...item.attributes,
+                                                empresa: val,
+                                                informacoes: {
+                                                    ...item.attributes?.informacoes,
+                                                    empresa: val,
+                                                },
+                                            },
+                                        });
+                                    }}
+                                    label={'Empresa / Razón Social'}
+                                    placeholder={'Ej: Transportes 26 de Mayo SA'}
                                 />
                             </span>
 
                             <span className={`form-group col-sm-6 ${classes.details} `}>
                                 <TextField
+                                    value={item.name || ''}
+                                    onChange={(event) => setItem({ ...item, name: event.target.value })}
+                                    label={'Nombre de Usuario (Contacto)'}
+                                    placeholder={'Ej: Juanjo García'}
+                                />
+                            </span>
+
+                            <span className={`form-group col-sm-4 ${classes.details} `}>
+                                <TextField
+                                    value={(item.attributes?.informacoes && item.attributes.informacoes.cpf) || ''}
+                                    onChange={(e) => setItem({
+                                        ...item,
+                                        attributes: {
+                                            ...item.attributes,
+                                            informacoes: {
+                                                ...item.attributes?.informacoes,
+                                                cpf: e.target.value,
+                                            },
+                                        },
+                                    })}
+                                    label={'RUC / DNI'}
+                                    placeholder={'Ej: 20515766082'}
+                                />
+                            </span>
+
+                            <span className={`form-group col-sm-4 ${classes.details} `}>
+                                <TextField
+                                    value={item.attributes?.cargo || (item.attributes?.informacoes && item.attributes.informacoes.cargo) || ''}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setItem({
+                                            ...item,
+                                            attributes: {
+                                                ...item.attributes,
+                                                cargo: val,
+                                                informacoes: {
+                                                    ...item.attributes?.informacoes,
+                                                    cargo: val,
+                                                },
+                                            },
+                                        });
+                                    }}
+                                    label={'Cargo / Área'}
+                                    placeholder={'Ej: Operaciones / Monitoreo'}
+                                />
+                            </span>
+
+                            <span className={`form-group col-sm-4 ${classes.details} `}>
+                                <TextField
                                     value={item.phone || ''}
                                     onChange={(event) => setItem({ ...item, phone: event.target.value })}
                                     label={t('sharedPhone')}
+                                    placeholder={'Ej: 51981005971'}
                                 />
                             </span>
 
                             <span className={`form-group col-sm-9 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.informacoes && item.attributes.informacoes.address) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, informacoes: { ...item.attributes.informacoes, address: e.target.value } } })}
-                                    label={'Endereço'}
+                                    value={(item.attributes?.informacoes && item.attributes.informacoes.address) || ''}
+                                    onChange={(e) => setItem({
+                                        ...item,
+                                        attributes: {
+                                            ...item.attributes,
+                                            informacoes: {
+                                                ...item.attributes?.informacoes,
+                                                address: e.target.value,
+                                            },
+                                        },
+                                    })}
+                                    label={'Dirección'}
                                 />
                             </span>
 
                             <span className={`form-group col-sm-3 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.informacoes && item.attributes.informacoes.addressNumber) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, informacoes: { ...item.attributes.informacoes, addressNumber: e.target.value } } })}
-                                    label={'Número'}
+                                    value={(item.attributes?.informacoes && item.attributes.informacoes.addressNumber) || ''}
+                                    onChange={(e) => setItem({
+                                        ...item,
+                                        attributes: {
+                                            ...item.attributes,
+                                            informacoes: {
+                                                ...item.attributes?.informacoes,
+                                                addressNumber: e.target.value,
+                                            },
+                                        },
+                                    })}
+                                    label={'Número / Mz / Lote'}
                                 />
                             </span>
 
                             <span className={`form-group col-sm-4 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.informacoes && item.attributes.informacoes.province) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, informacoes: { ...item.attributes.informacoes, province: e.target.value } } })}
-                                    label={'Bairro'}
+                                    value={(item.attributes?.informacoes && item.attributes.informacoes.province) || ''}
+                                    onChange={(e) => setItem({
+                                        ...item,
+                                        attributes: {
+                                            ...item.attributes,
+                                            informacoes: {
+                                                ...item.attributes?.informacoes,
+                                                province: e.target.value,
+                                            },
+                                        },
+                                    })}
+                                    label={'Distrito / Urbanización'}
                                 />
                             </span>
 
                             <span className={`form-group col-sm-4 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.informacoes && item.attributes.informacoes.cityandstate) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, informacoes: { ...item.attributes.informacoes, cityandstate: e.target.value } } })}
-                                    label={'Cidade'}
+                                    value={(item.attributes?.informacoes && item.attributes.informacoes.cityandstate) || ''}
+                                    onChange={(e) => setItem({
+                                        ...item,
+                                        attributes: {
+                                            ...item.attributes,
+                                            informacoes: {
+                                                ...item.attributes?.informacoes,
+                                                cityandstate: e.target.value,
+                                            },
+                                        },
+                                    })}
+                                    label={'Ciudad / Provincia'}
                                 />
                             </span>
 
                             <span className={`form-group col-sm-4 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.informacoes && item.attributes.informacoes.postalCode) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, informacoes: { ...item.attributes.informacoes, postalCode: e.target.value } } })}
-                                    label={'CEP'}
+                                    value={(item.attributes?.informacoes && item.attributes.informacoes.postalCode) || ''}
+                                    onChange={(e) => setItem({
+                                        ...item,
+                                        attributes: {
+                                            ...item.attributes,
+                                            informacoes: {
+                                                ...item.attributes?.informacoes,
+                                                postalCode: e.target.value,
+                                            },
+                                        },
+                                    })}
+                                    label={'Código Postal'}
                                 />
                             </span>
 
                             <span className={`form-group col-sm-12 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.informacoes && item.attributes.informacoes.complement) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, informacoes: { ...item.attributes.informacoes, complement: e.target.value } } })}
-                                    label={'Complemento'}
+                                    value={(item.attributes?.informacoes && item.attributes.informacoes.complement) || ''}
+                                    onChange={(e) => setItem({
+                                        ...item,
+                                        attributes: {
+                                            ...item.attributes,
+                                            informacoes: {
+                                                ...item.attributes?.informacoes,
+                                                complement: e.target.value,
+                                            },
+                                        },
+                                    })}
+                                    label={'Referencia / Complemento'}
                                 />
                             </span>
                         </AccordionDetails>
