@@ -2,8 +2,8 @@ import React from 'react';
 import { useMediaQuery, Paper } from '@mui/material';
 import makeStyles from '@mui/styles/makeStyles';
 import { useTheme } from '@mui/material/styles';
-// import LogoImage from './LogoImage';
 import { ReactComponent as Logo } from '../../public/imagens/logo-geozoone.svg';
+import useBranding from '../common/util/useBranding';
 
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import AppleIcon from '@mui/icons-material/Apple';
@@ -13,12 +13,9 @@ const useStyles = makeStyles((theme) => ({
     root: {
         width: '100%',
         height: '100%',
-
-        width: '100%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-
         backgroundImage: "url('./imagens/background.jpg')",
         backgroundSize: "100% 100%"
     },
@@ -41,14 +38,6 @@ const useStyles = makeStyles((theme) => ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        // flexDirection: 'column',
-        // justifyContent: 'center',
-        // alignItems: 'center',
-        // flex: 1,
-        // // boxShadow: '-2px 0px 16px rgba(0, 0, 0, 0.25)',
-        // [theme.breakpoints.up('lg')]: {
-        //   padding: theme.spacing(0, 25, 0, 0),
-        // },
         background: 'white',
         backgroundImage: "url('./background.jpg')",
         backgroundSize: "100% 100%"
@@ -57,44 +46,51 @@ const useStyles = makeStyles((theme) => ({
         maxWidth: theme.spacing(52),
         padding: theme.spacing(5),
         width: '100%',
-        // background: "rgba(250, 250, 250, 0.9)"
     },
     logo: {
         alignSelf: 'center',
-        // maxWidth: '100%',
-        // maxHeight: '300px',
         width: 'auto',
-        height: '150px',
+        maxWidth: '240px',
+        maxHeight: '150px',
+        objectFit: 'contain',
     },
 }));
 
 const LoginLayout = ({ children }) => {
     const classes = useStyles();
     const theme = useTheme();
+    const { branding } = useBranding();
+
+    const customRootStyle = branding?.background ? {
+        backgroundImage: `url(${branding.background})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+    } : {};
 
     return (
-        <main className={classes.root}>
-            {/* <div className={classes.sidebar}>
-        {!useMediaQuery(theme.breakpoints.down('lg')) && <LogoImage color={theme.palette.secondary.contrastText} />}
-      </div> */}
-            {/* <Paper className={classes.paper}>       */}
+        <main className={classes.root} style={customRootStyle}>
             <div className={"box-conteiner"}>
                 <form className={classes.form}>
                     <div className={'logoMarca'}>
-                        <Logo className={classes.logo} />
+                        {branding?.logo ? (
+                            <img
+                                src={branding.logo}
+                                alt={branding.title || 'Logo'}
+                                className={classes.logo}
+                            />
+                        ) : (
+                            <Logo className={classes.logo} />
+                        )}
                     </div>
                     {children}
 
-
                     <div className={"apps"}>
                         <AdbIcon />
-                    <AppleIcon />
-                    <WhatsAppIcon />
-                    
+                        <AppleIcon />
+                        <WhatsAppIcon />
                     </div>
-
                 </form>
-
             </div>
         </main>
     );

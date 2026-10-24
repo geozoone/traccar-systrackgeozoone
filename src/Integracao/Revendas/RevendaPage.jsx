@@ -16,11 +16,19 @@ import {
     Button,
     Toolbar,
     useTheme,
-    useMediaQuery
+    useMediaQuery,
+    Box,
+    Alert,
+    CircularProgress,
 } from '@mui/material';
 import makeStyles from '@mui/styles/makeStyles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DeleteIcon from '@mui/icons-material/Delete';
+import LanguageIcon from '@mui/icons-material/Language';
+import PaletteIcon from '@mui/icons-material/Palette';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useDispatch, useSelector } from 'react-redux';
 import dayjs from 'dayjs';
 import EditItemView from './EditItemView';
@@ -70,6 +78,61 @@ const ClientePage = () => {
     const [deleteEmail, setDeleteEmail] = useState();
     const [deleteFailed, setDeleteFailed] = useState(false);
 
+    // Estado de Marca Blanca / White-Label
+    const [brandingDomain, setBrandingDomain] = useState('');
+    const [brandingTitle, setBrandingTitle] = useState('');
+    const [brandingColor, setBrandingColor] = useState('#282833');
+    const [brandingLogo, setBrandingLogo] = useState(null);
+    const [brandingBackground, setBrandingBackground] = useState(null);
+    const [brandingSaving, setBrandingSaving] = useState(false);
+    const [brandingMsg, setBrandingMsg] = useState(null);
+
+    const handleImageUpload = (e, setter) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('La imagen no debe superar los 5MB');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setter(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const saveBrandingData = async (revendaTargetId) => {
+        const cleanDomain = (brandingDomain || '').trim();
+        if (!cleanDomain) return;
+
+        setBrandingSaving(true);
+        setBrandingMsg(null);
+        try {
+            const resp = await fetch('/modulo/branding', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    domain: cleanDomain,
+                    title: brandingTitle || 'GPS Tracking',
+                    logo: brandingLogo,
+                    background: brandingBackground,
+                    colorPrimary: brandingColor,
+                    revendaId: revendaTargetId || id || item?.id,
+                }),
+            });
+            if (resp.ok) {
+                setBrandingMsg({ type: 'success', text: `¡Marca guardada con éxito para ${cleanDomain}!` });
+            } else {
+                setBrandingMsg({ type: 'error', text: 'Error guardando configuración de marca' });
+            }
+        } catch (err) {
+            setBrandingMsg({ type: 'error', text: `Error de conexión: ${err.message}` });
+        } finally {
+            setBrandingSaving(false);
+        }
+    };
+
     const handleDelete = useCatch(async () => {
         if (deleteEmail === currentUser.email) {
             setDeleteFailed(false);
@@ -104,6 +167,9 @@ const ClientePage = () => {
         if (result.id === currentUser.id) {
             dispatch(sessionActions.updateUser(result));
         }
+        if (brandingDomain) {
+            saveBrandingData(result.id);
+        }
     };
 
     const validate = () => item && item.name && item.email && (item.attributes.informacoes && item.attributes.informacoes.cpf || false) && item.phone && (item.id || item.password);
@@ -113,9 +179,22 @@ const ClientePage = () => {
             const response = await fetch(`/api/users/${id}`);
             const cliente = await response.json();
 
-            // console.log(cliente);
-
             setItem({ ...cliente, attributes: { ...cliente.attributes, nivel: 2, informacoes: { ...cliente.attributes.informacoes } } });
+
+            // Cargar marca blanca si ya existe para este revendedor
+            try {
+                const bResp = await fetch(`/modulo/branding/revenda/${id}`);
+                if (bResp.ok) {
+                    const bData = await bResp.json();
+                    if (bData && bData.found) {
+                        setBrandingDomain(bData.domain || '');
+                        setBrandingTitle(bData.title || '');
+                        setBrandingColor(bData.colorPrimary || '#282833');
+                        setBrandingLogo(bData.logo || null);
+                        setBrandingBackground(bData.background || null);
+                    }
+                }
+            } catch (err) {}
         } else {
             setItem({ ...item, attributes: { nivel: 2, informacoes: {} } });
         }
@@ -251,6 +330,181 @@ const ClientePage = () => {
                                         />
                                     )}
                                 </span>
+                            </AccordionDetails>
+                        </Accordion>
+
+                        <Accordion defaultExpanded={Boolean(brandingDomain)}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 'bold' }}>
+                                    <PaletteIcon color="primary" />
+                                    🎨 Personalización de Marca (Marca Blanca / Dominio Propio)
+                                </Typography>
+                            </AccordionSummary>
+
+                            <AccordionDetails className={'m-3 form-row'}>
+                                {brandingMsg && (
+                                    <div className="col-12 mb-3">
+                                        <Alert severity={brandingMsg.type} onClose={() => setBrandingMsg(null)}>
+                                            {brandingMsg.text}
+                                        </Alert>
+                                    </div>
+                                )}
+
+                                <span className={`form-group col-sm-6 ${classes.details}`}>
+                                    <TextField
+                                        value={brandingDomain}
+                                        onChange={(e) => setBrandingDomain(e.target.value)}
+                                        label="Subdominio / Dominio del Revendedor"
+                                        placeholder="ej: gps3.ubiqsat.com"
+                                        helperText="El dominio que escribirá el cliente para entrar a la plataforma (sin https://)"
+                                    />
+                                </span>
+
+                                <span className={`form-group col-sm-6 ${classes.details}`}>
+                                    <TextField
+                                        value={brandingTitle}
+                                        onChange={(e) => setBrandingTitle(e.target.value)}
+                                        label="Título de la Plataforma / Pestaña"
+                                        placeholder="ej: Ubiqsat GPS Tracking"
+                                        helperText="Nombre que aparecerá en la pestaña del navegador"
+                                    />
+                                </span>
+
+                                <span className={`form-group col-sm-6 ${classes.details}`}>
+                                    <TextField
+                                        value={brandingColor}
+                                        onChange={(e) => setBrandingColor(e.target.value)}
+                                        type="color"
+                                        label="Color Corporativo"
+                                        helperText="Color principal de botones y detalles"
+                                        InputLabelProps={{ shrink: true }}
+                                        sx={{ minHeight: 60 }}
+                                    />
+                                </span>
+
+                                <div className="col-sm-12 my-2">
+                                    <hr />
+                                </div>
+
+                                {/* SECCIÓN SUBIDA DE LOGO */}
+                                <div className="form-group col-sm-6">
+                                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                        Logo del Revendedor (Pantalla de Login):
+                                    </Typography>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        startIcon={<CloudUploadIcon />}
+                                        fullWidth
+                                        sx={{ mb: 1 }}
+                                    >
+                                        Seleccionar Logo (PNG / SVG / JPG)
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*"
+                                            onChange={(e) => handleImageUpload(e, setBrandingLogo)}
+                                        />
+                                    </Button>
+
+                                    {brandingLogo ? (
+                                        <Box sx={{
+                                            mt: 1,
+                                            p: 2,
+                                            border: '1px dashed #ccc',
+                                            borderRadius: 2,
+                                            background: '#f9f9f9',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center'
+                                        }}>
+                                            <img
+                                                src={brandingLogo}
+                                                alt="Logo Preview"
+                                                style={{ maxWidth: '100%', maxHeight: '90px', objectFit: 'contain' }}
+                                            />
+                                            <Button
+                                                size="small"
+                                                color="error"
+                                                startIcon={<DeleteIcon />}
+                                                onClick={() => setBrandingLogo(null)}
+                                                sx={{ mt: 1 }}
+                                            >
+                                                Quitar Logo
+                                            </Button>
+                                        </Box>
+                                    ) : (
+                                        <Typography variant="caption" color="textSecondary">
+                                            (Si no se sube un logo propio, se mostrará el logo de Geozoone por defecto).
+                                        </Typography>
+                                    )}
+                                </div>
+
+                                {/* SECCIÓN SUBIDA DE FONDO */}
+                                <div className="form-group col-sm-6">
+                                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                        Fondo de Pantalla de Login:
+                                    </Typography>
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        startIcon={<CloudUploadIcon />}
+                                        fullWidth
+                                        sx={{ mb: 1 }}
+                                    >
+                                        Seleccionar Fondo (JPG / PNG)
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="image/*"
+                                            onChange={(e) => handleImageUpload(e, setBrandingBackground)}
+                                        />
+                                    </Button>
+
+                                    {brandingBackground ? (
+                                        <Box sx={{
+                                            mt: 1,
+                                            p: 2,
+                                            border: '1px dashed #ccc',
+                                            borderRadius: 2,
+                                            background: '#f9f9f9',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center'
+                                        }}>
+                                            <img
+                                                src={brandingBackground}
+                                                alt="Background Preview"
+                                                style={{ maxWidth: '100%', maxHeight: '90px', objectFit: 'cover', borderRadius: 4 }}
+                                            />
+                                            <Button
+                                                size="small"
+                                                color="error"
+                                                startIcon={<DeleteIcon />}
+                                                onClick={() => setBrandingBackground(null)}
+                                                sx={{ mt: 1 }}
+                                            >
+                                                Quitar Fondo
+                                            </Button>
+                                        </Box>
+                                    ) : (
+                                        <Typography variant="caption" color="textSecondary">
+                                            (Si no se sube un fondo, se usará el fondo estándar de Geozoone).
+                                        </Typography>
+                                    )}
+                                </div>
+
+                                <div className="col-12 mt-3">
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        disabled={brandingSaving || !brandingDomain}
+                                        onClick={() => saveBrandingData(id)}
+                                        startIcon={brandingSaving ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
+                                    >
+                                        {brandingSaving ? 'Guardando Marca...' : 'Guardar Personalización de Marca'}
+                                    </Button>
+                                </div>
                             </AccordionDetails>
                         </Accordion>
 

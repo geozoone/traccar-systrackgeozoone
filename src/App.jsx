@@ -8,6 +8,7 @@ import SocketController from './SocketController';
 import CachingController from './CachingController';
 import { useEffectAsync } from './reactHelper';
 import { sessionActions } from './store';
+import useBranding from './common/util/useBranding';
 
 const useStyles = makeStyles(() => ({
 	page: {
@@ -20,6 +21,7 @@ const useStyles = makeStyles(() => ({
 }));
 
 const App = () => {
+	useBranding();
 	const classes = useStyles();
 	const theme = useTheme();
 	const dispatch = useDispatch();
