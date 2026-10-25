@@ -38,10 +38,12 @@ const MapPositions = ({ positions, onClick, showStatus, selectedPosition, titleF
         showDirection = selectedPositionId === position.id;
         break;
     }
+    const speedKmh = position.speed != null ? Math.round(position.speed * 1.852) : 0;
+    const label = speedKmh > 0 ? `${device.name} (${speedKmh} km/h)` : device.name;
     return {
       id: position.id,
       deviceId: position.deviceId,
-      name: device.name,
+      name: label,
       fixTime: formatTime(position.fixTime, 'seconds', hours12),
       category: mapIconKey(device.category),
       color: showStatus ? position.attributes.color || getStatusColor(device.status) : 'neutral',
@@ -119,8 +121,9 @@ const MapPositions = ({ positions, onClick, showStatus, selectedPosition, titleF
           'text-size': 12,
         },
         paint: {
-          'text-halo-color': 'white',
-          'text-halo-width': 1,
+          'text-halo-color': 'rgba(255, 255, 255, 0.95)',
+          'text-halo-width': 2,
+          'text-color': '#0f172a',
         },
       });
       map.addLayer({

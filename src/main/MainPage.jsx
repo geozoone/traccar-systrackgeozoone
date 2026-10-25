@@ -88,8 +88,15 @@ const MainPage = () => {
 
 	const [devicesOpen, setDevicesOpen] = useState(desktop);
 	const [eventsOpen, setEventsOpen] = useState(false);
+	const [detailsOpen, setDetailsOpen] = useState(false);
 
 	const onEventsClick = useCallback(() => setEventsOpen(true), [setEventsOpen]);
+
+	useEffect(() => {
+		if (!selectedDeviceId) {
+			setDetailsOpen(false);
+		}
+	}, [selectedDeviceId]);
 
 	useEffect(() => {
 		if (!desktop && mapOnSelect && selectedDeviceId) {
@@ -106,6 +113,7 @@ const MainPage = () => {
 					filteredPositions={filteredPositions}
 					selectedPosition={selectedPosition}
 					onEventsClick={onEventsClick}
+					onOpenDetails={() => setDetailsOpen(true)}
 				/>
 			)}
 			<div className={classes.sidebar}>
@@ -131,6 +139,7 @@ const MainPage = () => {
 								filteredPositions={filteredPositions}
 								selectedPosition={selectedPosition}
 								onEventsClick={onEventsClick}
+								onOpenDetails={() => setDetailsOpen(true)}
 							/>
 						</div>
 					)}
@@ -145,11 +154,11 @@ const MainPage = () => {
 				)}
 			</div>
 			<EventsDrawer open={eventsOpen} onClose={() => setEventsOpen(false)} />
-			{selectedDeviceId && (
+			{selectedDeviceId && detailsOpen && (
 				<StatusCard
 					deviceId={selectedDeviceId}
 					position={selectedPosition}
-					onClose={() => dispatch(devicesActions.selectId(null))}
+					onClose={() => setDetailsOpen(false)}
 					desktopPadding={theme.dimensions.drawerWidthDesktop}
 				/>
 			)}
