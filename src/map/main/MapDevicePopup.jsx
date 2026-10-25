@@ -3,18 +3,69 @@ import { useDispatch, useSelector } from 'react-redux';
 import maplibregl from 'maplibre-gl';
 import { map } from '../core/MapView';
 import { devicesActions, sessionActions } from '../../store';
-import { formatTime, formatSpeed } from '../../common/util/formatter';
+import { formatTime } from '../../common/util/formatter';
 import { usePreference } from '../../common/util/preferences';
+
+// Función para resolver la dirección de calle usando Traccar o fallback a OpenStreetMap Nominatim
+async function resolveStreetAddress(lat, lon) {
+  // 1. Probar primero con el endpoint interno de Traccar
+  try {
+    const resTraccar = await fetch(`/api/server/geocode?latitude=${lat}&longitude=${lon}`);
+    if (resTraccar.ok) {
+      const text = await resTraccar.text();
+      if (text && text.trim().length > 0 && !text.toLowerCase().includes('error')) {
+        return text.trim();
+      }
+    }
+  } catch (e) {
+    // Continuar a fallback
+  }
+
+  // 2. Fallback directo a OpenStreetMap (Nominatim en español)
+  try {
+    const resOsm = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
+      { headers: { 'Accept-Language': 'es' } }
+    );
+    if (resOsm.ok) {
+      const data = await resOsm.json();
+      if (data && data.address) {
+        const a = data.address;
+        const street = a.road || a.pedestrian || a.street || a.highway || a.path || '';
+        const number = a.house_number ? ` ${a.house_number}` : '';
+        const district = a.suburb || a.neighbourhood || a.city_district || a.village || a.town || '';
+        const city = a.city || a.county || a.state || '';
+
+        const parts = [
+          street ? `${street}${number}` : '',
+          district,
+          city,
+        ].filter(Boolean);
+
+        if (parts.length > 0) {
+          return parts.join(', ');
+        }
+      }
+      if (data.display_name) {
+        return data.display_name.split(',').slice(0, 3).join(', ');
+      }
+    }
+  } catch (e) {
+    console.warn('No se pudo resolver la dirección:', e.message);
+  }
+
+  return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+}
 
 const MapDevicePopup = ({ onOpenDetails }) => {
   const dispatch = useDispatch();
   const popupRef = useRef(null);
+  const addressCache = useRef(new Map());
 
   const selectedDeviceId = useSelector((state) => state.devices.selectedId);
   const devices = useSelector((state) => state.devices.items);
   const positions = useSelector((state) => state.session.positions);
   const hours12 = usePreference('twelveHourFormat');
-  const speedUnit = usePreference('speedUnit', 'kmh');
 
   const selectedDevice = devices[selectedDeviceId];
   const selectedPosition = positions[selectedDeviceId];
@@ -50,7 +101,10 @@ const MapDevicePopup = ({ onOpenDetails }) => {
       return;
     }
 
-    const lngLat = [selectedPosition.longitude, selectedPosition.latitude];
+    const { latitude, longitude } = selectedPosition;
+    const lngLat = [longitude, latitude];
+    const coordKey = `${latitude.toFixed(5)},${longitude.toFixed(5)}`;
+
     const speedKmh = selectedPosition.speed != null ? Math.round(selectedPosition.speed * 1.852) : 0;
     const ignition = selectedPosition.attributes?.ignition;
     const empresa = selectedDevice.attributes?.empresa
@@ -66,16 +120,18 @@ const MapDevicePopup = ({ onOpenDetails }) => {
       ? `${Math.round(selectedPosition.attributes.totalDistance / 1000).toLocaleString()} km`
       : null;
     const timeFormatted = formatTime(selectedPosition.fixTime, 'seconds', hours12);
-    const address = selectedPosition.address || `${selectedPosition.latitude.toFixed(5)}, ${selectedPosition.longitude.toFixed(5)}`;
 
-    // Construir contenido HTML seguro y estilizado para el globo flotante
+    // Determinar la dirección inicial o si hay que resolverla
+    let initialAddress = selectedPosition.address || addressCache.current.get(coordKey) || '';
+
+    // Construir contenido HTML estilizado para el globo flotante
     const container = document.createElement('div');
     container.className = 'geozoone-pushpin-balloon';
     container.style.cssText = `
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       padding: 10px 12px;
-      min-width: 260px;
-      max-width: 320px;
+      min-width: 270px;
+      max-width: 330px;
       color: #1e293b;
       font-size: 13px;
       line-height: 1.4;
@@ -107,8 +163,8 @@ const MapDevicePopup = ({ onOpenDetails }) => {
         ${power ? `<div><strong>Voltaje:</strong> ${power}</div>` : (battery ? `<div><strong>Batería:</strong> ${battery}</div>` : '')}
       </div>
 
-      <div style="font-size: 11px; color: #475569; margin-bottom: 4px;">
-        <strong>📍 Ubicación:</strong> <span style="color: #0f172a;">${address}</span>
+      <div style="font-size: 11.5px; color: #334155; margin-bottom: 5px; line-height: 1.35;">
+        <strong>📍 Dirección:</strong> <span id="popup-address-text" style="color: #0369a1; font-weight: 500;">${initialAddress || 'Obteniendo dirección...'}</span>
       </div>
       <div style="font-size: 11px; color: #64748b; margin-bottom: 10px;">
         <strong>🕒 Reporte:</strong> ${timeFormatted}
@@ -148,7 +204,20 @@ const MapDevicePopup = ({ onOpenDetails }) => {
       </div>
     `;
 
-    // Asignar eventos de los botones dentro del DOM del Popup
+    // Si la dirección aún no estaba resuelta, obtenerla en segundo plano
+    if (!initialAddress) {
+      resolveStreetAddress(latitude, longitude).then((resolved) => {
+        if (resolved) {
+          addressCache.current.set(coordKey, resolved);
+          const addressEl = container.querySelector('#popup-address-text');
+          if (addressEl) {
+            addressEl.textContent = resolved;
+          }
+        }
+      });
+    }
+
+    // Asignar eventos a los botones dentro del DOM del Popup
     const btnTrail = container.querySelector('#btn-trail-10');
     if (btnTrail) {
       btnTrail.onclick = (e) => {
@@ -176,7 +245,7 @@ const MapDevicePopup = ({ onOpenDetails }) => {
         offset: [0, -26],
         closeButton: true,
         closeOnClick: true,
-        maxWidth: '340px',
+        maxWidth: '350px',
         className: 'geozoone-custom-popup',
       })
         .setLngLat(lngLat)
