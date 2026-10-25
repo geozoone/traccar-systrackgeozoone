@@ -7,7 +7,7 @@ import { formatTime } from '../../common/util/formatter';
 import { usePreference } from '../../common/util/preferences';
 
 // Función para resolver la dirección de calle usando Traccar o fallback a OpenStreetMap Nominatim
-async function resolveStreetAddress(lat, lon) {
+export async function resolveStreetAddress(lat, lon) {
   // 1. Probar primero con el endpoint interno de Traccar
   try {
     const resTraccar = await fetch(`/api/server/geocode?latitude=${lat}&longitude=${lon}`);

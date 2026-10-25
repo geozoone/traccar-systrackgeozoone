@@ -10,6 +10,7 @@ import ReportsMenu from './components/ReportsMenu';
 import { useCatch } from '../reactHelper';
 import MapView from '../map/core/MapView';
 import MapRoutePath from '../map/MapRoutePath';
+import MapRoutePoints from '../map/MapRoutePoints';
 import useReportStyles from './common/useReportStyles';
 import TableShimmer from '../common/components/TableShimmer';
 import MapCamera from '../map/MapCamera';
@@ -63,11 +64,16 @@ const CombinedReportPage = () => {
                         <MapView>
                             <MapGeofence />
                             {items.map((item) => (
-                                <MapRoutePath
-                                    key={item.deviceId}
-                                    name={devices[item.deviceId].name}
-                                    coordinates={item.route}
-                                />
+                                <React.Fragment key={item.deviceId}>
+                                    <MapRoutePath
+                                        name={devices[item.deviceId]?.name}
+                                        coordinates={item.route}
+                                        positions={item.positions}
+                                    />
+                                    {item.positions && Boolean(item.positions.length) && (
+                                        <MapRoutePoints positions={item.positions} />
+                                    )}
+                                </React.Fragment>
                             ))}
                             <MapMarkers markers={createMarkers()} />
                         </MapView>

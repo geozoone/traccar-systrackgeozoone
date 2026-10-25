@@ -98,7 +98,7 @@ const RouteReportPage = () => {
     return (
         <PageLayout menu={<ReportsMenu />} breadcrumbs={['reportTitle', 'reportRoute']}>
             <div className={classes.container}>
-                {selectedItem && (
+                {Boolean(items.length) && (
                     <div className={classes.containerMap}>
                         <MapView>
                             <MapGeofence />
@@ -111,7 +111,9 @@ const RouteReportPage = () => {
                                     </Fragment>
                                 );
                             })}
-                            <MapPositions positions={[selectedItem]} titleField="fixTime" />
+                            {selectedItem && (
+                                <MapPositions positions={[selectedItem]} titleField="fixTime" />
+                            )}
                         </MapView>
                         <MapCamera positions={items} />
                     </div>
