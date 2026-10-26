@@ -303,7 +303,7 @@ const EmailConfig = () => {
     };
 
     return (
-        <PageLayout menu={<SettingsMenu />}>
+        <PageLayout menu={<SettingsMenu />} breadcrumbs={['settingsTitle', 'Correo SMTP']}>
             <Container maxWidth="lg" className={classes.container}>
                 {/* Banner de Estado Header */}
                 <Paper className={classes.headerCard} elevation={3}>

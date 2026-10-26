@@ -44,11 +44,15 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
-const PageTitle = ({ breadcrumbs }) => {
+const PageTitle = ({ breadcrumbs = [] }) => {
     const theme = useTheme();
     const t = useTranslation();
 
     const desktop = useMediaQuery(theme.breakpoints.up('md'));
+
+    if (!breadcrumbs || breadcrumbs.length === 0) {
+        return null;
+    }
 
     if (desktop) {
         return (
