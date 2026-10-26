@@ -46,6 +46,7 @@ const ClientesPage = () => {
 
     const [timestamp, setTimestamp] = useState(Date.now());
     const [items, setItems] = useState([]);
+    const [clientBrands, setClientBrands] = useState({});
     const [searchKeyword, setSearchKeyword] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -113,10 +114,26 @@ const ClientesPage = () => {
                 }
 
                 setItems(listClientes);
-                //setItems(await response.json());
             } else {
                 throw Error(await response.text());
             }
+
+            // Cargar marcas asociadas a clientes
+            try {
+                const bResp = await fetch('/modulo/branding');
+                if (bResp.ok) {
+                    const allBrands = await bResp.json();
+                    const map = {};
+                    if (allBrands && typeof allBrands === 'object') {
+                        Object.values(allBrands).forEach((b) => {
+                            if (b.clienteId) {
+                                map[b.clienteId] = b.domain;
+                            }
+                        });
+                    }
+                    setClientBrands(map);
+                }
+            } catch (e) {}
         } finally {
             setLoading(false);
         }
@@ -153,6 +170,13 @@ const ClientesPage = () => {
                                 <strong>
                                     {item.attributes?.empresa || (item.attributes?.informacoes && item.attributes.informacoes.empresa) || item.name}
                                 </strong>
+                                {clientBrands[item.id] && (
+                                    <div style={{ marginTop: '4px' }}>
+                                        <span className="badge badge-primary text-wrap" style={{ fontSize: '0.72rem', padding: '3px 7px', backgroundColor: '#1976d2' }}>
+                                            🌐 {clientBrands[item.id]}
+                                        </span>
+                                    </div>
+                                )}
                             </TableCell>
                             <TableCell>
                                 {item.name}

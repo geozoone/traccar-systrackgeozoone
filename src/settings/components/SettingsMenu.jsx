@@ -229,7 +229,7 @@ const SettingsMenu = () => {
 							)
 						}
 
-						{admin && (
+						{(admin || revenda) && (
 							<MenuItem
 								title='WhatsApp'
 								link="/settings/apiwhats"
