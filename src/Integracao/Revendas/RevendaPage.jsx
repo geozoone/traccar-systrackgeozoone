@@ -435,7 +435,7 @@ const ClientePage = () => {
                                         </Box>
                                     ) : (
                                         <Typography variant="caption" color="textSecondary">
-                                            (Si no se sube un logo propio, se mostrará el logo de Geozoone por defecto).
+                                            (Si no se sube un logo propio, se mostrará el nombre de su empresa en texto estilizado).
                                         </Typography>
                                     )}
                                 </div>
@@ -489,7 +489,7 @@ const ClientePage = () => {
                                         </Box>
                                     ) : (
                                         <Typography variant="caption" color="textSecondary">
-                                            (Si no se sube un fondo, se usará el fondo estándar de Geozoone).
+                                            (Si no se sube un fondo, se aplicará un fondo corporativo oscuro neutral).
                                         </Typography>
                                     )}
                                 </div>
