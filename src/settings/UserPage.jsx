@@ -158,6 +158,19 @@ const UserPage = () => {
                                 onChange={(event) => setItem({ ...item, phone: event.target.value })}
                                 label={t('sharedPhone')}
                             />
+                            <TextField
+                                value={(item.attributes && item.attributes.telegramChatId) || ''}
+                                onChange={(e) => setItem({
+                                    ...item,
+                                    attributes: {
+                                        ...item.attributes,
+                                        telegramChatId: e.target.value,
+                                    },
+                                })}
+                                label="Telegram Chat ID (Alertas)"
+                                placeholder="Ej: 123456789"
+                                helperText="Tu ID numérico para recibir alertas satelitales en Telegram"
+                            />
                             <FormControl>
                                 <InputLabel>{t('mapDefault')}</InputLabel>
                                 <Select

@@ -22,6 +22,7 @@ import {
 import useFeatures from '../../common/util/useFeatures';
 
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import TelegramIcon from '@mui/icons-material/Telegram';
 import RecentActorsIcon from '@mui/icons-material/RecentActors';
 import GroupsIcon from '@mui/icons-material/Groups';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -230,12 +231,20 @@ const SettingsMenu = () => {
 						}
 
 						{(admin || revenda) && (
-							<MenuItem
-								title='WhatsApp'
-								link="/settings/apiwhats"
-								icon={<WhatsAppIcon />}
-								selected={location.pathname === '/settings/apiwhats'}
-							/>
+							<>
+								<MenuItem
+									title='WhatsApp'
+									link="/settings/apiwhats"
+									icon={<WhatsAppIcon />}
+									selected={location.pathname === '/settings/apiwhats'}
+								/>
+								<MenuItem
+									title='Telegram Bot'
+									link="/settings/apitelegram"
+									icon={<TelegramIcon />}
+									selected={location.pathname === '/settings/apitelegram'}
+								/>
+							</>
 						)}
 					</List>
 				</>

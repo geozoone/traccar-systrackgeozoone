@@ -70,6 +70,7 @@ import ContratoPage from './Integracao/Contratos/ContratoPage';
 import FaturasPage from './Integracao/Faturas/FaturasPage';
 
 import Apiwhats from './Integracao/Whats/WhatsApp';
+import ApiTelegram from './Integracao/Telegram/Telegram';
 
 const Navigation = () => {
     const navigate = useNavigate();
@@ -159,6 +160,7 @@ const Navigation = () => {
                     <Route path="server" element={<ServerPage />} />
                     
                     <Route path="apiwhats" element={<Apiwhats />} />
+                    <Route path="apitelegram" element={<ApiTelegram />} />
 
                     <Route path="clientes" element={<ClientesPage />} />
                     <Route path="cliente/:id/connections" element={<UserConnectionsPage />} />

@@ -403,6 +403,29 @@ const ClientePage = () => {
                                 />
                             </span>
 
+                            <span className={`form-group col-sm-4 ${classes.details} `}>
+                                <TextField
+                                    value={item.attributes?.telegramChatId || (item.attributes?.informacoes && item.attributes.informacoes.telegramChatId) || ''}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setItem({
+                                            ...item,
+                                            attributes: {
+                                                ...item.attributes,
+                                                telegramChatId: val,
+                                                informacoes: {
+                                                    ...item.attributes?.informacoes,
+                                                    telegramChatId: val,
+                                                },
+                                            },
+                                        });
+                                    }}
+                                    label={'Telegram Chat ID'}
+                                    placeholder={'Ej: 123456789'}
+                                    helperText={'Para recibir alertas de Traccar por Telegram'}
+                                />
+                            </span>
+
                             <span className={`form-group col-sm-9 ${classes.details} `}>
                                 <TextField
                                     value={(item.attributes?.informacoes && item.attributes.informacoes.address) || ''}
