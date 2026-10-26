@@ -9,7 +9,26 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" />
     <link rel="stylesheet" href="/public/css/styles.css">
-    <title>Geozoone</title>
+    <script>
+        (function() {
+            try {
+                var host = window.location.hostname;
+                var isMain = host === 'gps.geozoone.com' || host === 'geozoone.com';
+                var cached = localStorage.getItem('geozoone_branding_' + host);
+                if (cached) {
+                    var data = JSON.parse(cached);
+                    if (data && data.title) {
+                        document.title = data.title;
+                        return;
+                    }
+                }
+                document.title = isMain ? 'Geozoone' : 'Plataforma GPS';
+            } catch (e) {
+                document.title = 'Plataforma GPS';
+            }
+        })();
+    </script>
+    <title>Plataforma GPS</title>
 </head>
 
 <body>

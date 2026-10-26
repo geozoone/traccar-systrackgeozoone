@@ -16,8 +16,7 @@ const useStyles = makeStyles((theme) => ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundImage: "url('./imagens/background.jpg')",
-        backgroundSize: "100% 100%"
+        backgroundColor: '#1b1c23',
     },
     sidebar: {
         display: 'flex',
@@ -39,8 +38,7 @@ const useStyles = makeStyles((theme) => ({
         alignItems: 'center',
         justifyContent: 'center',
         background: 'white',
-        backgroundImage: "url('./background.jpg')",
-        backgroundSize: "100% 100%"
+        backgroundColor: '#1b1c23',
     },
     form: {
         maxWidth: theme.spacing(52),
@@ -59,14 +57,27 @@ const useStyles = makeStyles((theme) => ({
 const LoginLayout = ({ children }) => {
     const classes = useStyles();
     const theme = useTheme();
-    const { branding } = useBranding();
+    const { branding, loading, isReseller } = useBranding();
 
-    const customRootStyle = branding?.background ? {
-        backgroundImage: `url(${branding.background})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-    } : {};
+    const customRootStyle = React.useMemo(() => {
+        if (branding?.background) {
+            return {
+                backgroundImage: `url(${branding.background})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+            };
+        }
+        if (!isReseller) {
+            return {
+                backgroundImage: "url('./imagens/background.jpg')",
+                backgroundSize: "100% 100%",
+            };
+        }
+        return {
+            background: 'linear-gradient(135deg, #131419 0%, #1c1d25 50%, #15161c 100%)',
+        };
+    }, [branding?.background, isReseller]);
 
     return (
         <main className={classes.root} style={customRootStyle}>
@@ -79,6 +90,26 @@ const LoginLayout = ({ children }) => {
                                 alt={branding.title || 'Logo'}
                                 className={classes.logo}
                             />
+                        ) : isReseller ? (
+                            loading ? (
+                                <div style={{ height: '60px', width: '220px' }} />
+                            ) : (
+                                <div style={{
+                                    fontSize: '22px',
+                                    fontWeight: 700,
+                                    color: '#ffffff',
+                                    letterSpacing: '1px',
+                                    textTransform: 'uppercase',
+                                    textAlign: 'center',
+                                    padding: '12px 16px',
+                                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                                    borderRadius: '8px',
+                                    background: 'rgba(255, 255, 255, 0.04)',
+                                    margin: '0 auto',
+                                }}>
+                                    {branding?.title || 'Plataforma GPS'}
+                                </div>
+                            )
                         ) : (
                             <Logo className={classes.logo} />
                         )}
