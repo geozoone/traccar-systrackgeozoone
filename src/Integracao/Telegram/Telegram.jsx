@@ -75,7 +75,7 @@ const Telegram = () => {
     const currentUser = useSelector((state) => state.session.user);
     const admin = useAdministrator();
 
-    const revendaKey = admin ? 'global' : currentUser?.id;
+    const revendaKey = admin ? 'global' : (currentUser?.id ? String(currentUser.id) : null);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -95,14 +95,23 @@ const Telegram = () => {
     const [copiedChatId, setCopiedChatId] = useState(null);
 
     const fetchBotConfig = async () => {
+        if (!revendaKey) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const resp = await fetch(`/modulo/telegram/config/${revendaKey}`);
             if (resp.ok) {
-                const data = await resp.json();
-                if (data.configured) {
-                    setBotConfig(data);
-                } else {
+                const text = await resp.text();
+                try {
+                    const data = JSON.parse(text);
+                    if (data.configured) {
+                        setBotConfig(data);
+                    } else {
+                        setBotConfig(null);
+                    }
+                } catch {
                     setBotConfig(null);
                 }
             }
@@ -114,13 +123,18 @@ const Telegram = () => {
     };
 
     const fetchUpdates = async () => {
-        if (!botConfig?.configured) return;
+        if (!botConfig?.configured || !revendaKey) return;
         setLoadingUpdates(true);
         try {
             const resp = await fetch(`/modulo/telegram/updates/${revendaKey}`);
             if (resp.ok) {
-                const data = await resp.json();
-                setUpdates(data.users || []);
+                const text = await resp.text();
+                try {
+                    const data = JSON.parse(text);
+                    setUpdates(data.users || []);
+                } catch {
+                    setUpdates([]);
+                }
             }
         } catch (e) {
             console.error('Error fetching updates:', e);
@@ -141,6 +155,10 @@ const Telegram = () => {
 
     const handleSaveBot = async () => {
         if (!tokenInput.trim()) return;
+        if (!revendaKey) {
+            setStatusMsg({ type: 'warning', text: 'Cargando datos de usuario... Por favor reintenta en un instante.' });
+            return;
+        }
         setSaving(true);
         setStatusMsg(null);
         try {
@@ -149,7 +167,18 @@ const Telegram = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ botToken: tokenInput.trim() }),
             });
-            const data = await resp.json();
+            const text = await resp.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (parseErr) {
+                setStatusMsg({
+                    type: 'error',
+                    text: `El conector en el VPS devolvió un error (${resp.status}). El microservicio modulo debe ser reconstruido con 'docker compose build modulo && docker compose up -d modulo'.`,
+                });
+                return;
+            }
+
             if (resp.ok && data.configured) {
                 setBotConfig(data);
                 setTokenInput('');
@@ -198,7 +227,15 @@ const Telegram = () => {
                     message: testMessage,
                 }),
             });
-            const data = await resp.json();
+            const text = await resp.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch {
+                setTestResult({ type: 'error', text: `Error del servidor (${resp.status}): ${text.substring(0, 100)}` });
+                return;
+            }
+
             if (resp.ok) {
                 setTestResult({ type: 'success', text: '¡Alerta de prueba enviada exitosamente a Telegram!' });
             } else {
