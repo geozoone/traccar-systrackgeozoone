@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import {
     Accordion,
@@ -155,12 +155,16 @@ const SmsConfig = () => {
     const serverOrigin = window.location.origin;
     const gatewayUrl = `${serverOrigin}/modulo/sms/poll/${revendaKey || 'global'}`;
 
-    const fetchConfig = async () => {
+    const initialLoadedRef = useRef(false);
+
+    const fetchConfig = async (forceFormSync = false) => {
         if (!revendaKey) {
             setLoading(false);
             return;
         }
-        setLoading(true);
+        if (!initialLoadedRef.current) {
+            setLoading(true);
+        }
         try {
             const resp = await fetch(`/modulo/sms/config/${revendaKey}`);
             const text = await resp.text();
@@ -172,28 +176,40 @@ const SmsConfig = () => {
             }
 
             if (data && data.configured) {
+                // Siempre actualizamos telemetría en vivo e historial
                 setConfig(data);
-                setEnabled(Boolean(data.enabled));
-                setProvider(data.provider || 'android');
-                setGatewayName(data.gatewayName || 'Celular Android');
-                setAndroidUsername(data.androidUsername || '');
-                setAndroidPassword(data.androidPassword || '');
-                setAndroidServer(data.androidServer || 'https://api.sms-gate.app');
-                setTwilioSid(data.twilioSid || '');
-                setTwilioToken(data.twilioToken || '');
-                setTwilioFrom(data.twilioFrom || '');
+
+                // Solo sincronizamos los campos editables si es carga inicial o después de guardar
+                if (!initialLoadedRef.current || forceFormSync) {
+                    initialLoadedRef.current = true;
+                    setEnabled(Boolean(data.enabled));
+                    setProvider(data.provider || 'android');
+                    setGatewayName(data.gatewayName || 'Celular Android');
+                    setAndroidUsername(data.androidUsername || '');
+                    setAndroidPassword(data.androidPassword || '');
+                    setAndroidServer(data.androidServer || 'https://api.sms-gate.app');
+                    setTwilioSid(data.twilioSid || '');
+                    setTwilioToken(data.twilioToken || '');
+                    setTwilioFrom(data.twilioFrom || '');
+                }
             }
         } catch (err) {
             console.error('Error cargando pasarela SMS:', err);
-            setStatusMsg({ type: 'error', text: `Error cargando pasarela SMS: ${err.message}` });
+            if (!initialLoadedRef.current) {
+                setStatusMsg({ type: 'error', text: `Error cargando pasarela SMS: ${err.message}` });
+            }
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchConfig();
-        const interval = setInterval(fetchConfig, 12000);
+        initialLoadedRef.current = false;
+        fetchConfig(true);
+        // El intervalo de fondo solo consulta telemetría y NO sobreescribe lo que el usuario está escribiendo
+        const interval = setInterval(() => {
+            fetchConfig(false);
+        }, 15000);
         return () => clearInterval(interval);
     }, [revendaKey]);
 
@@ -220,7 +236,7 @@ const SmsConfig = () => {
             const data = await resp.json();
             if (resp.ok) {
                 setStatusMsg({ type: 'success', text: 'Configuración guardada exitosamente.' });
-                await fetchConfig();
+                await fetchConfig(true); // Sincroniza explícitamente tras guardar
             } else {
                 throw new Error(data.error || 'Error al guardar');
             }
