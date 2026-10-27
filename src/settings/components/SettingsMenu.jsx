@@ -24,6 +24,7 @@ import useFeatures from '../../common/util/useFeatures';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import TelegramIcon from '@mui/icons-material/Telegram';
 import EmailIcon from '@mui/icons-material/Email';
+import SmsIcon from '@mui/icons-material/Sms';
 import RecentActorsIcon from '@mui/icons-material/RecentActors';
 import GroupsIcon from '@mui/icons-material/Groups';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -250,6 +251,12 @@ const SettingsMenu = () => {
 									link="/settings/apiemail"
 									icon={<EmailIcon />}
 									selected={location.pathname === '/settings/apiemail'}
+								/>
+								<MenuItem
+									title='Pasarela SMS'
+									link="/settings/apisms"
+									icon={<SmsIcon />}
+									selected={location.pathname === '/settings/apisms'}
 								/>
 							</>
 						)}
