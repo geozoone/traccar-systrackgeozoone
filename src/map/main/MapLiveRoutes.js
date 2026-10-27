@@ -28,7 +28,7 @@ const MapLiveRoutes = () => {
         },
       });
 
-      // Capa de línea que conecta los últimos 10 puntos (trayectoria)
+      // Capa de línea que conecta los últimos 10 puntos (trayectoria en rojo vivo)
       map.addLayer({
         source: id,
         id,
@@ -40,8 +40,8 @@ const MapLiveRoutes = () => {
         },
         paint: {
           'line-color': ['get', 'color'],
-          'line-width': 3,
-          'line-opacity': 0.85,
+          'line-width': 4,
+          'line-opacity': 0.92,
         },
       });
 
@@ -52,11 +52,11 @@ const MapLiveRoutes = () => {
         type: 'circle',
         filter: ['==', '$type', 'Point'],
         paint: {
-          'circle-radius': 5,
+          'circle-radius': 5.5,
           'circle-color': ['get', 'color'],
           'circle-stroke-width': 2,
           'circle-stroke-color': '#ffffff',
-          'circle-opacity': 0.9,
+          'circle-opacity': 1.0,
         },
       });
 
@@ -86,7 +86,7 @@ const MapLiveRoutes = () => {
 
       deviceIds.forEach((deviceId) => {
         const coords = history[deviceId] || [];
-        const color = devices[deviceId]?.attributes?.['web.reportColor'] || theme.palette.geometry?.main || '#2196f3';
+        const color = devices[deviceId]?.attributes?.['web.reportColor'] || '#dc2626';
 
         // 1. Línea que conecta los puntos
         if (coords.length > 1) {
