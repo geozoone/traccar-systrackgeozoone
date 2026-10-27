@@ -26,23 +26,26 @@ import {
     TableContainer,
     TableHead,
     TableRow,
+    Card,
+    CardContent,
 } from '@mui/material';
 import makeStyles from '@mui/styles/makeStyles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SmsIcon from '@mui/icons-material/Sms';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import SendIcon from '@mui/icons-material/Send';
-import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import SaveIcon from '@mui/icons-material/Save';
 import PhoneAndroidIcon from '@mui/icons-material/PhoneAndroid';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import BatteryChargingFullIcon from '@mui/icons-material/BatteryChargingFull';
-import AutorenewIcon from '@mui/icons-material/Autorenew';
-import CleanHandsIcon from '@mui/icons-material/CleaningServices';
+import CloudIcon from '@mui/icons-material/Cloud';
+import HttpIcon from '@mui/icons-material/Http';
+import SimCardIcon from '@mui/icons-material/SimCard';
+import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SettingsMenu from '../../settings/components/SettingsMenu';
 import PageLayout from '../../common/components/PageLayout';
 import { useAdministrator } from '../../common/util/permissions';
@@ -71,9 +74,31 @@ const useStyles = makeStyles((theme) => ({
         marginBottom: theme.spacing(3),
         boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
     },
-    instructionsBox: {
-        background: '#f4fbf7',
+    providerCard: {
+        border: '2px solid transparent',
+        borderRadius: 12,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+        },
+    },
+    providerCardSelected: {
+        borderColor: '#11998e',
+        backgroundColor: '#f0fdf4',
+    },
+    telemetryBox: {
+        background: 'linear-gradient(135deg, #f0fdf4 0%, #e8f5e9 100%)',
         border: '1px solid #c3edd7',
+        borderRadius: 12,
+        padding: theme.spacing(2.5),
+        marginTop: theme.spacing(2),
+        marginBottom: theme.spacing(2),
+    },
+    instructionsBox: {
+        background: '#f8fafc',
+        border: '1px solid #e2e8f0',
         borderRadius: 8,
         padding: theme.spacing(2),
         marginBottom: theme.spacing(2),
@@ -104,20 +129,29 @@ const SmsConfig = () => {
     const [config, setConfig] = useState(null);
     const [statusMsg, setStatusMsg] = useState(null);
 
-    // Form
+    // Form State
     const [enabled, setEnabled] = useState(false);
+    const [provider, setProvider] = useState('android'); // 'android' | 'twilio' | 'legacy'
     const [gatewayName, setGatewayName] = useState('Celular Android Oficina');
-    const [showToken, setShowToken] = useState(false);
-    const [copiedUrl, setCopiedUrl] = useState(false);
-    const [copiedToken, setCopiedToken] = useState(false);
+
+    // Android SMS Gateway credentials
+    const [androidUsername, setAndroidUsername] = useState('');
+    const [androidPassword, setAndroidPassword] = useState('');
+    const [showAndroidPass, setShowAndroidPass] = useState(false);
+    const [androidServer, setAndroidServer] = useState('https://api.sms-gate.app');
+
+    // Twilio credentials
+    const [twilioSid, setTwilioSid] = useState('');
+    const [twilioToken, setTwilioToken] = useState('');
+    const [showTwilioToken, setShowTwilioToken] = useState(false);
+    const [twilioFrom, setTwilioFrom] = useState('');
 
     // Test send
-    const [testTo, setTestTo] = useState(currentUser?.phone || '');
-    const [testMessage, setTestMessage] = useState('🚨 Alerta de prueba GeoZoone: Pasarela SMS Android conectada exitosamente.');
+    const [testTo, setTestTo] = useState(currentUser?.phone || '+51981005971');
+    const [testMessage, setTestMessage] = useState('🚨 Alerta de prueba GeoZoone GPS: Pasarela SMS conectada y transmitiendo exitosamente.');
     const [sendingTest, setSendingTest] = useState(false);
     const [testResult, setTestResult] = useState(null);
 
-    // Base URL for Android phone to connect
     const serverOrigin = window.location.origin;
     const gatewayUrl = `${serverOrigin}/modulo/sms/poll/${revendaKey || 'global'}`;
 
@@ -140,7 +174,14 @@ const SmsConfig = () => {
             if (data && data.configured) {
                 setConfig(data);
                 setEnabled(Boolean(data.enabled));
+                setProvider(data.provider || 'android');
                 setGatewayName(data.gatewayName || 'Celular Android');
+                setAndroidUsername(data.androidUsername || '');
+                setAndroidPassword(data.androidPassword || '');
+                setAndroidServer(data.androidServer || 'https://api.sms-gate.app');
+                setTwilioSid(data.twilioSid || '');
+                setTwilioToken(data.twilioToken || '');
+                setTwilioFrom(data.twilioFrom || '');
             }
         } catch (err) {
             console.error('Error cargando pasarela SMS:', err);
@@ -152,7 +193,7 @@ const SmsConfig = () => {
 
     useEffect(() => {
         fetchConfig();
-        const interval = setInterval(fetchConfig, 10000); // Polling status every 10s
+        const interval = setInterval(fetchConfig, 12000);
         return () => clearInterval(interval);
     }, [revendaKey]);
 
@@ -166,7 +207,14 @@ const SmsConfig = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     enabled,
+                    provider,
                     gatewayName: gatewayName.trim(),
+                    androidUsername: androidUsername.trim(),
+                    androidPassword: androidPassword.trim(),
+                    androidServer: androidServer.trim(),
+                    twilioSid: twilioSid.trim(),
+                    twilioToken: twilioToken.trim(),
+                    twilioFrom: twilioFrom.trim(),
                 }),
             });
             const data = await resp.json();
@@ -183,42 +231,10 @@ const SmsConfig = () => {
         }
     };
 
-    const handleRegenerateToken = async () => {
-        if (!window.confirm('¿Deseas generar un nuevo Token de Seguridad? Deberás actualizar el token en la app de tu celular Android.')) {
-            return;
-        }
-        setSaving(true);
-        try {
-            const resp = await fetch(`/modulo/sms/config/${revendaKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ regenerateToken: true }),
-            });
-            if (resp.ok) {
-                setStatusMsg({ type: 'info', text: 'Nuevo token generado correctamente.' });
-                await fetchConfig();
-            }
-        } catch (err) {
-            setStatusMsg({ type: 'error', text: err.message });
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleClearQueue = async () => {
-        try {
-            const resp = await fetch(`/modulo/sms/clear-queue/${revendaKey}`, { method: 'POST' });
-            if (resp.ok) {
-                setStatusMsg({ type: 'info', text: 'Cola de mensajes SMS limpiada.' });
-                await fetchConfig();
-            }
-        } catch (err) {}
-    };
-
     const handleSendTest = async (e) => {
         e?.preventDefault();
         if (!testTo.trim()) {
-            setTestResult({ ok: false, error: 'Ingresa un número de celular de destino.' });
+            setTestResult({ ok: false, error: 'Ingresa un número de celular de destino (ej. +51981005971).' });
             return;
         }
         setSendingTest(true);
@@ -243,11 +259,11 @@ const SmsConfig = () => {
             if (resp.ok && data.status === 'ok') {
                 setTestResult({
                     ok: true,
-                    message: `¡Mensaje #${data.id} puesto en cola con éxito! Tu celular Android lo retirará y enviará al número +${data.recipient}.`,
+                    message: data.message || `¡SMS #${data.id} enviado exitosamente hacia ${data.recipient}!`,
                 });
                 await fetchConfig();
             } else {
-                setTestResult({ ok: false, error: data.error || 'Fallo al poner en cola' });
+                setTestResult({ ok: false, error: data.error || 'Fallo al enviar SMS de prueba' });
             }
         } catch (err) {
             setTestResult({ ok: false, error: err.message });
@@ -256,18 +272,8 @@ const SmsConfig = () => {
         }
     };
 
-    const copyToClipboard = (text, type) => {
-        navigator.clipboard.writeText(text);
-        if (type === 'url') {
-            setCopiedUrl(true);
-            setTimeout(() => setCopiedUrl(false), 2000);
-        } else {
-            setCopiedToken(true);
-            setTimeout(() => setCopiedToken(false), 2000);
-        }
-    };
-
     const isOnline = config?.status === 'online';
+    const isAuthError = config?.status === 'auth_error';
 
     return (
         <PageLayout menu={<SettingsMenu />} breadcrumbs={['settingsTitle', 'Pasarela SMS']}>
@@ -278,11 +284,11 @@ const SmsConfig = () => {
                         <PhoneAndroidIcon style={{ fontSize: 44, color: '#fff' }} />
                         <Box>
                             <Typography variant="h5" fontWeight={700}>
-                                Pasarela SMS Android Gateway (Opción C)
+                                Pasarela SMS Multi-Proveedor
                             </Typography>
                             <Typography variant="body2" style={{ opacity: 0.9 }}>
                                 {admin
-                                    ? 'Canal SMS Central de la Matriz (Dispositivo Local)'
+                                    ? 'Canal SMS Central de la Matriz'
                                     : `Pasarela SMS Exclusiva para Revendedor #${revendaKey}`}
                             </Typography>
                         </Box>
@@ -294,17 +300,23 @@ const SmsConfig = () => {
                         ) : isOnline ? (
                             <Chip
                                 icon={<CheckCircleIcon style={{ color: '#fff' }} />}
-                                label="Celular En Línea 🟢"
+                                label="Dispositivo En Línea 🟢"
                                 style={{ backgroundColor: '#2e7d32', color: '#fff', fontWeight: 600 }}
+                            />
+                        ) : isAuthError ? (
+                            <Chip
+                                icon={<ErrorOutlineIcon style={{ color: '#fff' }} />}
+                                label="Error de Usuario/Clave ⚠️"
+                                style={{ backgroundColor: '#ed6c02', color: '#fff', fontWeight: 600 }}
                             />
                         ) : (
                             <Chip
-                                label={config?.lastSeen ? "Celular Desconectado 🔴" : "Nunca Conectado ⏸️"}
-                                style={{ backgroundColor: '#d32f2f', color: '#fff', fontWeight: 600 }}
+                                label={config?.androidUsername ? "Desconectado 🔴" : "Sin Configurar ⏸️"}
+                                style={{ backgroundColor: '#757575', color: '#fff', fontWeight: 600 }}
                             />
                         )}
                         <IconButton onClick={fetchConfig} style={{ color: '#fff' }} size="small">
-                            <Tooltip title="Actualizar estado">
+                            <Tooltip title="Actualizar estado en vivo">
                                 <RefreshIcon />
                             </Tooltip>
                         </IconButton>
@@ -321,24 +333,92 @@ const SmsConfig = () => {
                     </Alert>
                 )}
 
-                {/* Configuración y Credenciales del Gateway */}
+                {/* Selector de Tipo de Pasarela */}
                 <Paper className={classes.sectionCard} elevation={2}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                         <Box display="flex" alignItems="center" gap={1}>
                             <SmsIcon color="primary" />
                             <Typography variant="h6" fontWeight={600}>
-                                Configuración de Conexión del Teléfono Android
+                                Tipo de Pasarela SMS
                             </Typography>
                         </Box>
                     </Box>
 
                     <Typography variant="body2" color="textSecondary" paragraph>
-                        Con la <strong>Opción C</strong>, puedes utilizar cualquier celular Android económico con un chip
-                        prepago o postpago (con plan de SMS ilimitados) ubicado en tu oficina o casa. El celular se conectará
-                        a esta URL y despachará las alertas críticas de tu flota por SMS celular tradicional hacia los teléfonos
-                        de tus clientes, sin requerir saldo en plataformas costosas de terceros.
+                        Selecciona el método de envío para las alertas críticas de tu flota. Puedes usar un teléfono celular Android propio con chip de SMS ilimitados (costo S/ 0) o un servicio API en la nube como Twilio.
                     </Typography>
 
+                    <Grid container spacing={2} mb={3}>
+                        {/* Opción 1: Celular Android */}
+                        <Grid item xs={12} md={4}>
+                            <Card
+                                className={`${classes.providerCard} ${provider === 'android' ? classes.providerCardSelected : ''}`}
+                                onClick={() => setProvider('android')}
+                                elevation={provider === 'android' ? 3 : 1}
+                            >
+                                <CardContent>
+                                    <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+                                        <PhoneAndroidIcon color={provider === 'android' ? 'primary' : 'action'} />
+                                        <Typography variant="subtitle1" fontWeight={700}>
+                                            Celular Android
+                                        </Typography>
+                                    </Box>
+                                    <Chip label="Recomendado • Costo S/ 0" size="small" color="success" style={{ marginBottom: 8, fontWeight: 600 }} />
+                                    <Typography variant="body2" color="textSecondary">
+                                        Conecta cualquier celular Android con chip SIM ilimitado (Entel, Claro, Movistar) mediante la app SMS Gateway.
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+
+                        {/* Opción 2: Twilio Cloud */}
+                        <Grid item xs={12} md={4}>
+                            <Card
+                                className={`${classes.providerCard} ${provider === 'twilio' ? classes.providerCardSelected : ''}`}
+                                onClick={() => setProvider('twilio')}
+                                elevation={provider === 'twilio' ? 3 : 1}
+                            >
+                                <CardContent>
+                                    <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+                                        <CloudIcon color={provider === 'twilio' ? 'primary' : 'action'} />
+                                        <Typography variant="subtitle1" fontWeight={700}>
+                                            Twilio Cloud SMS
+                                        </Typography>
+                                    </Box>
+                                    <Chip label="API de Pago por Mensaje" size="small" color="default" style={{ marginBottom: 8 }} />
+                                    <Typography variant="body2" color="textSecondary">
+                                        Envío masivo corporativo mediante cuenta propia de Twilio. Requiere Account SID y Auth Token.
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+
+                        {/* Opción 3: Polling / Legacy */}
+                        <Grid item xs={12} md={4}>
+                            <Card
+                                className={`${classes.providerCard} ${provider === 'legacy' ? classes.providerCardSelected : ''}`}
+                                onClick={() => setProvider('legacy')}
+                                elevation={provider === 'legacy' ? 3 : 1}
+                            >
+                                <CardContent>
+                                    <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+                                        <HttpIcon color={provider === 'legacy' ? 'primary' : 'action'} />
+                                        <Typography variant="subtitle1" fontWeight={700}>
+                                            Sondeo HTTP / Polling
+                                        </Typography>
+                                    </Box>
+                                    <Chip label="Avanzado / Webhook" size="small" color="default" style={{ marginBottom: 8 }} />
+                                    <Typography variant="body2" color="textSecondary">
+                                        Para bots o scripts personalizados (MacroDroid, Tasker) que leen la cola mediante peticiones GET periódicas.
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    </Grid>
+
+                    <Divider style={{ margin: '24px 0' }} />
+
+                    {/* Formulario según proveedor */}
                     <form onSubmit={handleSave}>
                         <Grid container spacing={3}>
                             <Grid item xs={12} sm={6}>
@@ -352,7 +432,7 @@ const SmsConfig = () => {
                                     }
                                     label={
                                         <Typography variant="body1" fontWeight={600}>
-                                            Habilitar Despacho por SMS Celular Android
+                                            Habilitar Notificaciones por SMS
                                         </Typography>
                                     }
                                 />
@@ -361,81 +441,183 @@ const SmsConfig = () => {
                             <Grid item xs={12} sm={6}>
                                 <TextField
                                     fullWidth
-                                    label="Identificador / Nombre del Teléfono"
-                                    placeholder="Redmi Note 10 - Oficina"
+                                    label="Nombre Descriptivo de la Pasarela"
+                                    placeholder="Moto G04 - Claro Oficina"
                                     value={gatewayName}
                                     onChange={(e) => setGatewayName(e.target.value)}
                                     disabled={saving}
-                                    helperText="Nombre descriptivo para identificar el equipo"
                                 />
                             </Grid>
 
-                            {/* URL para copiar */}
-                            <Grid item xs={12} sm={6}>
-                                <Typography variant="caption" color="textSecondary" fontWeight={600}>
-                                    URL DEL SERVIDOR GATEWAY (Copiar en la app del celular):
-                                </Typography>
-                                <Box className={classes.urlBox} mt={0.5}>
-                                    <span>{gatewayUrl}</span>
-                                    <Tooltip title={copiedUrl ? "¡Copiado!" : "Copiar URL"}>
-                                        <IconButton size="small" onClick={() => copyToClipboard(gatewayUrl, 'url')}>
-                                            <ContentCopyIcon fontSize="small" color={copiedUrl ? "primary" : "inherit"} />
-                                        </IconButton>
-                                    </Tooltip>
-                                </Box>
-                            </Grid>
+                            {/* CAMPOS PARA CELULAR ANDROID */}
+                            {provider === 'android' && (
+                                <>
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            required
+                                            label="Usuario de la App (Username / Login)"
+                                            placeholder="ej. WT2G01"
+                                            value={androidUsername}
+                                            onChange={(e) => setAndroidUsername(e.target.value)}
+                                            disabled={saving}
+                                            helperText="Aparece en la pantalla de la app SMS Gateway bajo Cloud Server"
+                                        />
+                                    </Grid>
 
-                            {/* Token para copiar */}
-                            <Grid item xs={12} sm={6}>
-                                <Typography variant="caption" color="textSecondary" fontWeight={600}>
-                                    TOKEN DE SEGURIDAD / API KEY:
-                                </Typography>
-                                <Box className={classes.urlBox} mt={0.5}>
-                                    <span>{showToken ? config?.token : '••••••••••••••••••••'}</span>
-                                    <Box display="flex" alignItems="center">
-                                        <IconButton size="small" onClick={() => setShowToken(!showToken)}>
-                                            {showToken ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
-                                        </IconButton>
-                                        <Tooltip title={copiedToken ? "¡Copiado!" : "Copiar Token"}>
-                                            <IconButton size="small" onClick={() => copyToClipboard(config?.token || '', 'token')}>
-                                                <ContentCopyIcon fontSize="small" color={copiedToken ? "primary" : "inherit"} />
-                                            </IconButton>
-                                        </Tooltip>
-                                        <Tooltip title="Regenerar Token Secreto">
-                                            <IconButton size="small" onClick={handleRegenerateToken}>
-                                                <AutorenewIcon fontSize="small" />
-                                            </IconButton>
-                                        </Tooltip>
-                                    </Box>
-                                </Box>
-                            </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            required
+                                            type={showAndroidPass ? 'text' : 'password'}
+                                            label="Contraseña de la App (Password)"
+                                            placeholder="••••••••••••"
+                                            value={androidPassword}
+                                            onChange={(e) => setAndroidPassword(e.target.value)}
+                                            disabled={saving}
+                                            helperText="Contraseña generada por la app al registrar el dispositivo"
+                                            InputProps={{
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <IconButton
+                                                            onClick={() => setShowAndroidPass(!showAndroidPass)}
+                                                            edge="end"
+                                                            size="small"
+                                                        >
+                                                            {showAndroidPass ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                        />
+                                    </Grid>
 
-                            {/* Telemetría del teléfono si está conectado */}
-                            {config?.lastSeen && (
-                                <Grid item xs={12}>
-                                    <Box display="flex" gap={2} flexWrap="wrap" p={1.5} bgcolor="#f8f9fa" borderRadius={2} alignItems="center">
-                                        <Typography variant="body2">
-                                            📶 <strong>Última Sincronización:</strong> {new Date(config.lastSeen).toLocaleTimeString()}
+                                    {/* Telemetría en Vivo si está en línea */}
+                                    {config?.status === 'online' && (
+                                        <Grid item xs={12}>
+                                            <Box className={classes.telemetryBox}>
+                                                <Box display="flex" alignItems="center" gap={1} mb={1}>
+                                                    <CheckCircleIcon color="success" />
+                                                    <Typography variant="subtitle1" fontWeight={700} color="success.dark">
+                                                        Celular Sincronizado y Transmitiendo en Vivo
+                                                    </Typography>
+                                                </Box>
+                                                <Grid container spacing={2}>
+                                                    <Grid item xs={12} sm={3}>
+                                                        <Typography variant="caption" color="textSecondary">📱 Teléfono Detectado</Typography>
+                                                        <Typography variant="body2" fontWeight={600}>{config.phoneModel || 'Motorola Android'}</Typography>
+                                                    </Grid>
+                                                    <Grid item xs={12} sm={3}>
+                                                        <Typography variant="caption" color="textSecondary">📶 Operador SIM</Typography>
+                                                        <Typography variant="body2" fontWeight={600} display="flex" alignItems="center" gap={0.5}>
+                                                            <SignalCellularAltIcon fontSize="small" color="primary" />
+                                                            {config.carrierName || 'Claro / Móvil'}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item xs={12} sm={3}>
+                                                        <Typography variant="caption" color="textSecondary">⏰ Último Latido</Typography>
+                                                        <Typography variant="body2" fontWeight={600}>
+                                                            {config.lastSeen ? new Date(config.lastSeen).toLocaleTimeString() : 'Hace instantes'}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item xs={12} sm={3}>
+                                                        <Typography variant="caption" color="textSecondary">📨 Total SMS Enviados</Typography>
+                                                        <Typography variant="body2" fontWeight={600}>{config.totalSent || 0} SMS</Typography>
+                                                    </Grid>
+                                                </Grid>
+                                            </Box>
+                                        </Grid>
+                                    )}
+                                </>
+                            )}
+
+                            {/* CAMPOS PARA TWILIO */}
+                            {provider === 'twilio' && (
+                                <>
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            required
+                                            label="Twilio Account SID"
+                                            placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                            value={twilioSid}
+                                            onChange={(e) => setTwilioSid(e.target.value)}
+                                            disabled={saving}
+                                        />
+                                    </Grid>
+
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            required
+                                            type={showTwilioToken ? 'text' : 'password'}
+                                            label="Twilio Auth Token"
+                                            placeholder="••••••••••••••••••••••••••••••••"
+                                            value={twilioToken}
+                                            onChange={(e) => setTwilioToken(e.target.value)}
+                                            disabled={saving}
+                                            InputProps={{
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <IconButton
+                                                            onClick={() => setShowTwilioToken(!showTwilioToken)}
+                                                            edge="end"
+                                                            size="small"
+                                                        >
+                                                            {showTwilioToken ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                        />
+                                    </Grid>
+
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            required
+                                            label="Número Remitente Twilio (From)"
+                                            placeholder="+1234567890"
+                                            value={twilioFrom}
+                                            onChange={(e) => setTwilioFrom(e.target.value)}
+                                            disabled={saving}
+                                            helperText="Número telefónico comprado en tu cuenta de Twilio"
+                                        />
+                                    </Grid>
+                                </>
+                            )}
+
+                            {/* CAMPOS PARA SONDEO HTTP / LEGACY */}
+                            {provider === 'legacy' && (
+                                <>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="textSecondary" fontWeight={600}>
+                                            URL DE SONDEO (GET):
                                         </Typography>
-                                        {config.phoneModel && (
-                                            <Typography variant="body2">
-                                                📱 <strong>Modelo:</strong> {config.phoneModel}
-                                            </Typography>
-                                        )}
-                                        {config.batteryLevel !== null && config.batteryLevel !== undefined && (
-                                            <Typography variant="body2" display="flex" alignItems="center" gap={0.5}>
-                                                <BatteryChargingFullIcon fontSize="small" color="success" />
-                                                <strong>Batería:</strong> {config.batteryLevel}%
-                                            </Typography>
-                                        )}
-                                        <Typography variant="body2">
-                                            📨 <strong>Total Enviados:</strong> {config.totalSent || 0} SMS
+                                        <Box className={classes.urlBox} mt={0.5}>
+                                            <span>{gatewayUrl}</span>
+                                            <Tooltip title="Copiar URL">
+                                                <IconButton size="small" onClick={() => navigator.clipboard.writeText(gatewayUrl)}>
+                                                    <ContentCopyIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </Box>
+                                    </Grid>
+
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="caption" color="textSecondary" fontWeight={600}>
+                                            TOKEN DE SEGURIDAD:
                                         </Typography>
-                                        <Typography variant="body2">
-                                            ⏳ <strong>En Cola Pendientes:</strong> {config.pendingCount || 0}
-                                        </Typography>
-                                    </Box>
-                                </Grid>
+                                        <Box className={classes.urlBox} mt={0.5}>
+                                            <span>{config?.token || '••••••••••••••••••••'}</span>
+                                            <Tooltip title="Copiar Token">
+                                                <IconButton size="small" onClick={() => navigator.clipboard.writeText(config?.token || '')}>
+                                                    <ContentCopyIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </Box>
+                                    </Grid>
+                                </>
                             )}
 
                             <Grid item xs={12}>
@@ -457,121 +639,122 @@ const SmsConfig = () => {
                     </form>
                 </Paper>
 
-                {/* Envío de Prueba Diagnóstica */}
+                {/* Prueba de Envío en Caliente */}
                 <Paper className={classes.sectionCard} elevation={2}>
                     <Box display="flex" alignItems="center" gap={1} mb={2}>
-                        <SendIcon color="secondary" />
+                        <SendIcon color="primary" />
                         <Typography variant="h6" fontWeight={600}>
-                            Prueba de Despacho de SMS en Vivo
+                            Prueba de Transmisión SMS en Caliente
                         </Typography>
                     </Box>
 
                     <Typography variant="body2" color="textSecondary" paragraph>
-                        Envía un mensaje de prueba para comprobar que tu celular Android retira la alerta de la cola del
-                        servidor y la envía inmediatamente por la tarjeta SIM física.
+                        Envía un mensaje de prueba en tiempo real para verificar que el chip de tu celular o tu cuenta despache el SMS hacia el número indicado.
                     </Typography>
-
-                    {testResult && (
-                        <Alert
-                            severity={testResult.ok ? 'success' : 'error'}
-                            onClose={() => setTestResult(null)}
-                            style={{ marginBottom: 16, borderRadius: 8 }}
-                        >
-                            {testResult.ok ? testResult.message : `Fallo al encolar: ${testResult.error}`}
-                        </Alert>
-                    )}
 
                     <form onSubmit={handleSendTest}>
                         <Grid container spacing={2} alignItems="center">
                             <Grid item xs={12} sm={4}>
                                 <TextField
                                     fullWidth
-                                    label="Número Receptor"
-                                    placeholder="+51999888777"
+                                    label="Número Móvil de Destino"
+                                    placeholder="+51981005971"
                                     value={testTo}
                                     onChange={(e) => setTestTo(e.target.value)}
-                                    required
                                     disabled={sendingTest}
-                                    helperText="Incluye código de país (ej: 51987654321)"
+                                    helperText="Incluye código de país (ej. +51 para Perú)"
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={5}>
+
+                            <Grid item xs={12} sm={6}>
                                 <TextField
                                     fullWidth
-                                    label="Texto del Mensaje"
+                                    label="Mensaje de Prueba"
                                     value={testMessage}
                                     onChange={(e) => setTestMessage(e.target.value)}
-                                    required
                                     disabled={sendingTest}
-                                    helperText="Máximo 160 caracteres estándar GSM"
+                                    multiline
+                                    rows={1}
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={3}>
+
+                            <Grid item xs={12} sm={2}>
                                 <Button
-                                    type="submit"
-                                    variant="contained"
-                                    color="secondary"
-                                    size="large"
                                     fullWidth
-                                    startIcon={sendingTest ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
-                                    disabled={sendingTest}
-                                    style={{ height: 54, borderRadius: 8, fontWeight: 700 }}
+                                    type="submit"
+                                    variant="outlined"
+                                    color="primary"
+                                    size="large"
+                                    disabled={sendingTest || !enabled}
+                                    startIcon={sendingTest ? <CircularProgress size={18} /> : <SendIcon />}
+                                    style={{ height: 54, borderRadius: 8, fontWeight: 600 }}
                                 >
-                                    {sendingTest ? 'Encolando...' : 'Enviar SMS Prueba'}
+                                    {sendingTest ? 'Enviando...' : 'Enviar SMS'}
                                 </Button>
                             </Grid>
                         </Grid>
                     </form>
+
+                    {testResult && (
+                        <Box mt={2}>
+                            <Alert
+                                severity={testResult.ok ? 'success' : 'error'}
+                                onClose={() => setTestResult(null)}
+                                style={{ borderRadius: 8 }}
+                            >
+                                {testResult.ok ? testResult.message : `Error al enviar: ${testResult.error}`}
+                            </Alert>
+                        </Box>
+                    )}
                 </Paper>
 
-                {/* Bitácora y Cola de Mensajes */}
+                {/* Historial de Envíos */}
                 <Paper className={classes.sectionCard} elevation={2}>
                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                         <Typography variant="h6" fontWeight={600}>
-                            Historial y Cola de Mensajes Recientes ({config?.pendingCount || 0} pendientes)
+                            Historial Reciente de Alertas SMS Despachadas
                         </Typography>
-                        <Box display="flex" gap={1}>
-                            {config?.pendingCount > 0 && (
-                                <Button
-                                    variant="outlined"
-                                    color="warning"
-                                    size="small"
-                                    startIcon={<CleanHandsIcon />}
-                                    onClick={handleClearQueue}
-                                >
-                                    Limpiar Cola
-                                </Button>
-                            )}
-                            <IconButton size="small" onClick={fetchConfig}>
-                                <RefreshIcon fontSize="small" />
-                            </IconButton>
-                        </Box>
+                        <Chip
+                            label={`Total: ${config?.totalSent || 0} mensajes`}
+                            color="primary"
+                            variant="outlined"
+                            size="small"
+                        />
                     </Box>
 
                     {config?.history && config.history.length > 0 ? (
-                        <TableContainer>
-                            <Table size="small">
+                        <TableContainer style={{ maxHeight: 320 }}>
+                            <Table size="small" stickyHeader>
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell><strong>Hora</strong></TableCell>
-                                        <TableCell><strong>Destinatario</strong></TableCell>
-                                        <TableCell><strong>Mensaje</strong></TableCell>
-                                        <TableCell align="center"><strong>Estado</strong></TableCell>
+                                        <TableCell>Fecha / Hora</TableCell>
+                                        <TableCell>Destinatario</TableCell>
+                                        <TableCell>Proveedor</TableCell>
+                                        <TableCell>Mensaje</TableCell>
+                                        <TableCell align="center">Estado</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
                                     {config.history.map((h, idx) => (
-                                        <TableRow key={idx}>
-                                            <TableCell>{h.sentAt ? new Date(h.sentAt).toLocaleTimeString() : '-'}</TableCell>
-                                            <TableCell>+{h.to}</TableCell>
-                                            <TableCell style={{ maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        <TableRow key={h.id || idx} hover>
+                                            <TableCell style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                                                {h.createdAt ? new Date(h.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-'}
+                                            </TableCell>
+                                            <TableCell style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                                                {h.to}
+                                            </TableCell>
+                                            <TableCell style={{ fontSize: '0.8rem', textTransform: 'capitalize' }}>
+                                                {h.provider || 'Android'}
+                                            </TableCell>
+                                            <TableCell style={{ fontSize: '0.85rem', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {h.message}
                                             </TableCell>
                                             <TableCell align="center">
                                                 <Chip
                                                     size="small"
-                                                    label={h.status === 'sent' ? 'Enviado por SIM' : h.status}
-                                                    color={h.status === 'sent' ? 'success' : 'default'}
+                                                    label={h.status === 'failed' ? 'Error' : 'Entregado'}
+                                                    color={h.status === 'failed' ? 'error' : 'success'}
+                                                    style={{ height: 22, fontSize: '0.75rem', fontWeight: 600 }}
                                                 />
                                             </TableCell>
                                         </TableRow>
@@ -592,43 +775,41 @@ const SmsConfig = () => {
                         <Box display="flex" alignItems="center" gap={1}>
                             <HelpOutlineIcon color="info" />
                             <Typography variant="subtitle1" fontWeight={600}>
-                                Guía Paso a Paso: ¿Cómo conectar tu Celular Android?
+                                Guía Rápida: ¿Cómo conectar tu Celular Android en 2 minutos?
                             </Typography>
                         </Box>
                     </AccordionSummary>
                     <AccordionDetails>
                         <Box className={classes.instructionsBox}>
                             <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-                                📲 Paso 1: Dispositivo y Chip
+                                📲 Paso 1: Instalar SMS Gateway en el Celular
                             </Typography>
                             <Typography variant="body2" paragraph>
-                                Consigue cualquier teléfono Android (versión 6.0 o superior) y colócale un chip móvil con plan
-                                de SMS ilimitados (Entel, Claro, Movistar, Bitel u operador de tu país). Conéctalo al Wi-Fi de tu oficina.
+                                En tu celular Android (con chip SIM de SMS ilimitados), descarga e instala la aplicación <strong>SMS Gateway</strong> (disponible en GitHub o APK directo). Concede los permisos de SMS y desactiva la optimización de batería.
                             </Typography>
 
                             <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-                                📥 Paso 2: Instalar la Aplicación Gateway
+                                ⚡ Paso 2: Activar Cloud Server y Registrar
                             </Typography>
                             <Typography variant="body2" paragraph>
-                                Puedes usar la app oficial y gratuita <strong>Traccar SMS Gateway</strong> (disponible en F-Droid, Google Play o APK directo de Traccar) o apps equivalentes de SMS Gateway HTTP.
+                                Abre la aplicación:<br />
+                                1. Activa la opción <strong>Cloud Server (ON)</strong>.<br />
+                                2. Toca <strong>Start Service</strong> $\rightarrow$ selecciona <strong>Sign Up</strong>.<br />
+                                3. El botón cambiará a <strong>Online (Verde)</strong> y verás en pantalla tu <strong>Username</strong> y <strong>Password</strong>.
                             </Typography>
 
                             <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-                                ⚙️ Paso 3: Configurar URL y Token
+                                🔑 Paso 3: Pegar Credenciales en GeoZoone
                             </Typography>
                             <Typography variant="body2" paragraph>
-                                Abre la aplicación en tu celular:<br />
-                                - En el campo <strong>Server URL / Servicio</strong>, pega la URL de conexión que aparece arriba.<br />
-                                - En el campo <strong>API Key / Token</strong>, pega tu token secreto.<br />
-                                - Activa la casilla de sondeo (Polling) cada 3 a 5 segundos.<br />
-                                - Concede los permisos de <strong>SMS</strong> y desactiva la "optimización de batería" para que la app no se apague al bloquear la pantalla.
+                                Pega ese <strong>Usuario</strong> y <strong>Contraseña</strong> en los campos de arriba y pulsa <strong>Guardar</strong>. Tu celular quedará vinculado y las alertas de tu empresa saldrán directamente por tu chip móvil.
                             </Typography>
 
                             <Typography variant="subtitle2" fontWeight={700} gutterBottom>
                                 🛡️ Aislamiento Estricto de Marca
                             </Typography>
                             <Typography variant="body2">
-                                Todas las alertas de tus vehículos saldrán exclusivamente a través del chip celular de tu empresa. Tus clientes recibirán el SMS en cualquier teléfono convencional sin necesidad de internet.
+                                Cada revendedor tiene su propia pasarela con su chip independiente. Tus clientes recibirán el SMS en cualquier teléfono convencional sin que nadie conozca el número de la matriz ni de otros revendedores.
                             </Typography>
                         </Box>
                     </AccordionDetails>
