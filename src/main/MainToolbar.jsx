@@ -10,7 +10,7 @@ import ViewListIcon from '@mui/icons-material/ViewList';
 import AddIcon from '@mui/icons-material/Add';
 import TuneIcon from '@mui/icons-material/Tune';
 import { useTranslation } from '../common/components/LocalizationProvider';
-import { useDeviceReadonly } from '../common/util/permissions';
+import { useDeviceReadonly, useCliente, useAdministrator, useRevenda } from '../common/util/permissions';
 import DeviceRow from './DeviceRow';
 import { useEffectAsync } from '../reactHelper';
 
@@ -60,6 +60,9 @@ const MainToolbar = ({
     const t = useTranslation();
 
     const deviceReadonly = useDeviceReadonly();
+    const cliente = useCliente();
+    const admin = useAdministrator();
+    const revenda = useRevenda();
 
     const groups = useSelector((state) => state.groups.items);
     const devices = useSelector((state) => state.devices.items);
@@ -121,13 +124,21 @@ const MainToolbar = ({
                 {devicesOpen ? <ListIcon /> : <ViewListIcon />}
             </IconButton>
 
-            <IconButton edge="start" onClick={() => navigate('/settings/device')}>
-                <AddCircleIcon />
-            </IconButton>
+            {!deviceReadonly && !cliente && (
+                <Tooltip title={t('sharedAddDevice') || "Agregar Vehículo"}>
+                    <IconButton edge="start" onClick={() => navigate('/settings/device')}>
+                        <AddCircleIcon />
+                    </IconButton>
+                </Tooltip>
+            )}
 
-            <IconButton edge="start" onClick={() => navigate('/settings/cliente')}>
-                <AccountCircleIcon />
-            </IconButton>
+            {!cliente && (admin || revenda) && (
+                <Tooltip title="Agregar Cliente">
+                    <IconButton edge="start" onClick={() => navigate('/settings/cliente')}>
+                        <AccountCircleIcon />
+                    </IconButton>
+                </Tooltip>
+            )}
 
             <OutlinedInput
                 ref={inputRef}

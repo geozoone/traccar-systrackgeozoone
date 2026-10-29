@@ -15,7 +15,7 @@ import TableShimmer from '../common/components/TableShimmer';
 import SearchHeader, { filterByKeyword } from './components/SearchHeader';
 import { usePreference } from '../common/util/preferences';
 import { formatTime } from '../common/util/formatter';
-import { useDeviceReadonly } from '../common/util/permissions';
+import { useDeviceReadonly, useCliente } from '../common/util/permissions';
 import useSettingsStyles from './common/useSettingsStyles';
 
 const DevicesPage = () => {
@@ -28,6 +28,7 @@ const DevicesPage = () => {
   const hours12 = usePreference('twelveHourFormat');
 
   const deviceReadonly = useDeviceReadonly();
+  const cliente = useCliente();
 
   const [timestamp, setTimestamp] = useState(Date.now());
   const [items, setItems] = useState([]);
@@ -95,7 +96,7 @@ const DevicesPage = () => {
           )) : (<TableShimmer columns={7} endAction />)}
         </TableBody>
       </Table>
-      <CollectionFab editPath="/settings/device" />
+      <CollectionFab editPath="/settings/device" disabled={deviceReadonly || !!cliente} />
     </PageLayout>
   );
 };
