@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
-  Table, TableRow, TableCell, TableHead, TableBody,
+  Table, TableRow, TableCell, TableHead, TableBody, Box, Button,
 } from '@mui/material';
 import LinkIcon from '@mui/icons-material/Link';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { useEffectAsync } from '../reactHelper';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import PageLayout from '../common/components/PageLayout';
@@ -13,6 +14,7 @@ import CollectionFab from './components/CollectionFab';
 import CollectionActions from './components/CollectionActions';
 import TableShimmer from '../common/components/TableShimmer';
 import SearchHeader, { filterByKeyword } from './components/SearchHeader';
+import ImportDevicesDialog from './components/ImportDevicesDialog';
 import { usePreference } from '../common/util/preferences';
 import { formatTime } from '../common/util/formatter';
 import { useDeviceReadonly, useCliente } from '../common/util/permissions';
@@ -34,6 +36,7 @@ const DevicesPage = () => {
   const [items, setItems] = useState([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffectAsync(async () => {
     setLoading(true);
@@ -58,7 +61,32 @@ const DevicesPage = () => {
 
   return (
     <PageLayout menu={<SettingsMenu />} breadcrumbs={['settingsTitle', 'deviceTitle']}>
-      <SearchHeader keyword={searchKeyword} setKeyword={setSearchKeyword} />
+      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ px: 2, pt: 1 }}>
+        <Box flexGrow={1}>
+          <SearchHeader keyword={searchKeyword} setKeyword={setSearchKeyword} />
+        </Box>
+        {!deviceReadonly && !cliente && (
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<UploadFileIcon />}
+            onClick={() => setImportOpen(true)}
+            sx={{
+              textTransform: 'none',
+              borderRadius: 2,
+              fontWeight: 'bold',
+              whiteSpace: 'nowrap',
+              ml: 2,
+              height: 42,
+              px: 2.5,
+              background: 'linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%)',
+              boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)',
+            }}
+          >
+            Importar Excel / CSV
+          </Button>
+        )}
+      </Box>
       <Table className={classes.table}>
         <TableHead>
           <TableRow>
@@ -97,6 +125,13 @@ const DevicesPage = () => {
         </TableBody>
       </Table>
       <CollectionFab editPath="/settings/device" disabled={deviceReadonly || !!cliente} />
+
+      {/* Modal de Importación Masiva Excel / CSV */}
+      <ImportDevicesDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImportSuccess={() => setTimestamp(Date.now())}
+      />
     </PageLayout>
   );
 };
