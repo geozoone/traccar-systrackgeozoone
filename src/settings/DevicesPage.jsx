@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
-  Table, TableRow, TableCell, TableHead, TableBody, Box, Button,
+  Table, TableRow, TableCell, TableHead, TableBody, Box, Button, Chip,
 } from '@mui/material';
 import LinkIcon from '@mui/icons-material/Link';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -59,11 +59,25 @@ const DevicesPage = () => {
     handler: (deviceId) => navigate(`/settings/device/${deviceId}/connections`),
   };
 
+  const [filterNoGroup, setFilterNoGroup] = useState(false);
+
+  const orphanCount = items.filter((d) => !d.groupId).length;
+
   return (
     <PageLayout menu={<SettingsMenu />} breadcrumbs={['settingsTitle', 'deviceTitle']}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ px: 2, pt: 1 }}>
-        <Box flexGrow={1}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ px: 2, pt: 1, gap: 1 }}>
+        <Box flexGrow={1} display="flex" alignItems="center" gap={1.5}>
           <SearchHeader keyword={searchKeyword} setKeyword={setSearchKeyword} />
+          {orphanCount > 0 && (
+            <Chip
+              label={`⚠️ ${orphanCount} Sin Grupo`}
+              color={filterNoGroup ? 'warning' : 'default'}
+              variant={filterNoGroup ? 'filled' : 'outlined'}
+              onClick={() => setFilterNoGroup(!filterNoGroup)}
+              title="Filtrar solo vehículos sin grupo asignado"
+              sx={{ fontWeight: 'bold', cursor: 'pointer', height: 38 }}
+            />
+          )}
         </Box>
         {!deviceReadonly && !cliente && (
           <Button
@@ -101,11 +115,20 @@ const DevicesPage = () => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {!loading ? items.filter(filterByKeyword(searchKeyword)).map((item) => (
-            <TableRow key={item.id}>
-              <TableCell>{item.name}</TableCell>
+          {!loading ? items
+            .filter(filterByKeyword(searchKeyword))
+            .filter((item) => (filterNoGroup ? !item.groupId : true))
+            .map((item) => (
+            <TableRow key={item.id} sx={!item.groupId ? { backgroundColor: 'rgba(239, 68, 68, 0.05)' } : {}}>
+              <TableCell sx={{ fontWeight: 'bold' }}>{item.name}</TableCell>
               <TableCell>{item.uniqueId}</TableCell>
-              <TableCell>{item.groupId ? groups[item.groupId]?.name : null}</TableCell>
+              <TableCell>
+                {item.groupId ? (
+                  groups[item.groupId]?.name || `Grupo #${item.groupId}`
+                ) : (
+                  <Chip size="small" label="⚠️ Sin Grupo" color="error" variant="outlined" sx={{ fontWeight: 'bold' }} />
+                )}
+              </TableCell>
               <TableCell>{item.phone}</TableCell>
               <TableCell>{item.model}</TableCell>
               <TableCell>{item.contact}</TableCell>

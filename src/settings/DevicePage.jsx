@@ -167,9 +167,7 @@ const DevicePage = () => {
             ))
     }
 
-    const validate = () => item && item.name && item.uniqueId;
-
-
+    const validate = () => item && item.name && item.uniqueId && Boolean(item.groupId);
 
     return (
         <EditItemView
@@ -195,14 +193,26 @@ const DevicePage = () => {
                                     value={item.name || ''}
                                     onChange={(event) => setItem({ ...item, name: event.target.value })}
                                     label={t('sharedName')}
+                                    required
                                 />
                             </span>
-                            <span className={`form-group col-sm-8 ${classes.details} `}>
+                            <span className={`form-group col-sm-4 ${classes.details} `}>
                                 <TextField
                                     value={item.uniqueId || ''}
                                     onChange={(event) => setItem({ ...item, uniqueId: event.target.value })}
                                     label={t('deviceIdentifier')}
                                     helperText={t('deviceIdentifierHelp')}
+                                    required
+                                />
+                            </span>
+                            <span className={`form-group col-sm-4 ${classes.details} `}>
+                                <SelectField
+                                    value={item.groupId || 0}
+                                    onChange={(event) => setItem({ ...item, groupId: Number(event.target.value) })}
+                                    endpoint="/api/groups"
+                                    label="Grupo de Flota (Obligatorio) *"
+                                    error={!item.groupId}
+                                    helperText={!item.groupId ? "Obligatorio: garantiza la visibilidad del vehículo" : ""}
                                 />
                             </span>
 
@@ -342,16 +352,7 @@ const DevicePage = () => {
                             </Typography>
                         </AccordionSummary>
                         <AccordionDetails className={'form-row'} >
-                            <span className={`form-group col-sm-4 ${classes.details} `}>
-                                <SelectField
-                                    value={item.groupId || 0}
-                                    onChange={(event) => setItem({ ...item, groupId: Number(event.target.value) })}
-                                    endpoint="/api/groups"
-                                    label={t('groupParent')}
-                                />
-                            </span>
-
-                            <span className={`form-group col-sm-4 ${classes.details} `}>
+                            <span className={`form-group col-sm-6 ${classes.details} `}>
                                 <SelectField
                                     value={item.calendarId || 0}
                                     onChange={(event) => setItem({ ...item, calendarId: Number(event.target.value) })}
@@ -360,7 +361,7 @@ const DevicePage = () => {
                                 />
                             </span>
 
-                            <span className={`form-group col-sm-4 ${classes.details} `}>
+                            <span className={`form-group col-sm-6 ${classes.details} `}>
                                 <TextField
                                     label={t('userExpirationTime')}
                                     type="date"

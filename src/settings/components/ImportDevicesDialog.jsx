@@ -24,6 +24,7 @@ import {
   Alert,
   IconButton,
   Tooltip,
+  FormHelperText,
 } from '@mui/material';
 import makeStyles from '@mui/styles/makeStyles';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -232,6 +233,14 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
   const handleConfirmImport = async () => {
     if (parsedDevices.length === 0) return;
 
+    if (!selectedGroup) {
+      setStatusMessage({
+        type: 'error',
+        text: '⚠️ Es obligatorio seleccionar un Grupo de Flota para organizar estos vehículos y asegurar su visibilidad.',
+      });
+      return;
+    }
+
     setLoading(true);
     setStatusMessage(null);
 
@@ -332,23 +341,28 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
             </Select>
           </FormControl>
 
-          <FormControl fullWidth size="small">
-            <InputLabel id="select-group-label">Asignar a Grupo (Opcional)</InputLabel>
+          <FormControl fullWidth size="small" required error={!selectedGroup}>
+            <InputLabel id="select-group-label">Asignar a Grupo de Flota (Obligatorio) *</InputLabel>
             <Select
               labelId="select-group-label"
               value={selectedGroup}
-              label="Asignar a Grupo (Opcional)"
+              label="Asignar a Grupo de Flota (Obligatorio) *"
               onChange={(e) => setSelectedGroup(e.target.value)}
             >
-              <MenuItem value="">
-                <em>Ninguno (Sin Grupo)</em>
+              <MenuItem value="" disabled>
+                <em>-- Selecciona el Grupo de Flota (Obligatorio) --</em>
               </MenuItem>
               {Object.values(groups || {}).map((g) => (
                 <MenuItem key={g.id} value={g.id}>
-                  {g.name}
+                  📁 {g.name}
                 </MenuItem>
               ))}
             </Select>
+            {!selectedGroup && (
+              <FormHelperText error sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+                * Obligatorio: Organiza los vehículos bajo la empresa y evita dispositivos huérfanos.
+              </FormHelperText>
+            )}
           </FormControl>
         </Box>
 
@@ -474,11 +488,15 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
           <Button
             variant="contained"
             color="primary"
-            disabled={loading || parsedDevices.length === 0 || (validCount === 0 && !updateExisting)}
+            disabled={loading || parsedDevices.length === 0 || !selectedGroup || (validCount === 0 && !updateExisting)}
             onClick={handleConfirmImport}
             sx={{ borderRadius: 2, px: 3, fontWeight: 'bold' }}
           >
-            {loading ? 'Importando Flota...' : `Confirmar e Importar ${validCount + (updateExisting ? existingCount : 0)} Vehículos`}
+            {loading
+              ? 'Importando Flota...'
+              : !selectedGroup
+                ? 'Seleccione un Grupo para Continuar'
+                : `Confirmar e Importar ${validCount + (updateExisting ? existingCount : 0)} Vehículos`}
           </Button>
         </Box>
       </DialogActions>
