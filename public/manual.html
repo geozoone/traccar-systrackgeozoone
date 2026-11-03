@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual de Operación para Revendedores - Marca Blanca GPS</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --primary: #0f4c81;
+      --primary-light: #e8f1f8;
+      --secondary: #10b981;
+      --accent: #f59e0b;
+      --text: #1f2937;
+      --text-muted: #4b5563;
+      --border: #e5e7eb;
+      --bg-card: #f9fafb;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      line-height: 1.6;
+      background: #ffffff;
+      padding: 40px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Portada / Header */
+    .header {
+      border-bottom: 3px solid var(--primary);
+      padding-bottom: 25px;
+      margin-bottom: 35px;
+    }
+    .header h1 {
+      font-size: 26pt;
+      color: var(--primary);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+    .header p {
+      font-size: 11pt;
+      color: var(--text-muted);
+    }
+    .badge {
+      display: inline-block;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 9pt;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Tipografía */
+    h2 {
+      font-size: 16pt;
+      color: var(--primary);
+      margin-top: 35px;
+      margin-bottom: 15px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 13pt;
+      color: #111827;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      page-break-after: avoid;
+    }
+    p, ul, ol {
+      margin-bottom: 14px;
+      font-size: 10.5pt;
+    }
+    ul, ol {
+      padding-left: 24px;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+    strong {
+      color: #111827;
+    }
+
+    /* Diagrama ASCII / Bloque de código */
+    pre {
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 9.5pt;
+      font-family: Consolas, "Courier New", monospace;
+      overflow-x: auto;
+      margin: 15px 0 20px 0;
+      page-break-inside: avoid;
+    }
+
+    /* Cajas destacadas */
+    .callout {
+      background: var(--primary-light);
+      border-left: 4px solid var(--primary);
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 18px 0;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+    .callout-title {
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+
+    /* Tablas */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      text-align: left;
+    }
+    th {
+      background: #f3f4f6;
+      color: var(--primary);
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background: #fafafa;
+    }
+
+    /* Botón flotante para imprimir (solo visible en pantalla) */
+    .no-print-bar {
+      position: sticky;
+      top: 0;
+      background: #0f172a;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 100;
+    }
+    .btn-print {
+      background: var(--secondary);
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 10pt;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-print:hover {
+      background: #059669;
+    }
+
+    /* Estilos específicos para Impresión / Exportar a PDF */
+    @media print {
+      body {
+        padding: 0;
+        max-width: 100%;
+        color: #000;
+      }
+      .no-print-bar {
+        display: none !important;
+      }
+      @page {
+        margin: 1.8cm 1.5cm;
+        size: A4 portrait;
+      }
+      h2 {
+        break-before: page;
+      }
+      h2:first-of-type {
+        break-before: avoid;
+      }
+      pre {
+        background: #f1f5f9;
+        color: #0f172a;
+        border: 1px solid #cbd5e1;
+      }
+      .callout {
+        background: #f0f7ff;
+        border-left: 4px solid #0f4c81;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barra de acción rápida para pantalla -->
+  <div class="no-print-bar">
+    <span>📄 Manual de Operación para Revendedores</span>
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar en PDF</button>
+  </div>
+
+  <div class="header">
+    <div class="badge">Guía Operativa Oficial</div>
+    <h1>Manual de Operación para Revendedores</h1>
+    <p><strong>Plataforma GPS en Marca Blanca</strong> &bull; Administración de Flotas, Clientes y Notificaciones Privadas</p>
+  </div>
+
+  <p>Bienvenido a la guía oficial de administración y operación de tu plataforma de rastreo satelital. Tu plataforma ya se encuentra completamente desplegada con tu <strong>Marca Blanca</strong> (tu dominio web, logotipo corporativo, colores y fondo de acceso). Como Revendedor, dispones de acceso total para dar de alta a tus clientes, organizar sus flotas de vehículos y configurar canales de alertas privados.</p>
+
+  <h2>1. Arquitectura y Flujo de Trabajo del Revendedor</h2>
+  <p>La plataforma utiliza un modelo de gestión basado en <strong>4 pilares esenciales</strong>:</p>
+
+  <pre>
+ ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+ │ 1. GRUPO/FLOTA  │ ────► │ 2. EQUIPOS GPS  │ ────► │ 3. CLIENTE WEB  │
+ │ (Empresa/Áreas) │       │ (IMEI y Placas) │       │ (Usuario/Clave) │
+ └─────────────────┘       └─────────────────┘       └─────────────────┘
+                                                              │
+                                                              ▼
+                                                   ┌─────────────────┐
+                                                   │ 4. ENLACE (🔗)   │
+                                                   │ (Conexión 1-Clic)│
+                                                   └─────────────────┘</pre>
+
+  <ol>
+    <li><strong>Grupo:</strong> Representa la empresa de tu cliente (o un departamento específico: <em>Camiones, Autos, Ventas</em>).</li>
+    <li><strong>Dispositivo:</strong> Es el hardware GPS físico instalado en el vehículo (se vincula a un Grupo).</li>
+    <li><strong>Cliente:</strong> Es el usuario final que tendrá acceso web o móvil.</li>
+    <li><strong>Conexión (🔗):</strong> El revendedor vincula el Grupo al Cliente con un solo clic. Automáticamente, el cliente visualiza todos los vehículos pertenecientes a ese grupo.</li>
+  </ol>
+
+  <h2>2. Paso a Paso: Puesta en Marcha de un Nuevo Cliente</h2>
+
+  <h3>Paso 1: Crear el Grupo o Flota del Cliente</h3>
+  <p>Para no tener que asignar los vehículos uno a uno, siempre empezamos creando su Grupo:</p>
+  <ol>
+    <li>Ingresa a <strong>Ajustes (⚙️) ➡️ Grupos</strong>.</li>
+    <li>Haz clic en el botón <strong>+</strong> (Nuevo Grupo).</li>
+    <li><strong>Nombre:</strong> Ingresa el nombre de la empresa cliente (ejemplo: <code>Transportes Los Andes</code> o <code>Distribuidora Norte</code>).</li>
+    <li>Haz clic en <strong>Guardar</strong>.</li>
+  </ol>
+
+  <h3>Paso 2: Registrar los Dispositivos GPS (Vehículos)</h3>
+  <p>El revendedor tiene el control del alta de hardware para garantizar el correcto inventario y asignación de IMEI:</p>
+  <ol>
+    <li>Ve a <strong>Ajustes (⚙️) ➡️ Dispositivos</strong>.</li>
+    <li>Haz clic en el botón <strong>+</strong>.</li>
+    <li>Completa los datos principales:
+      <ul>
+        <li><strong>Nombre:</strong> La placa o número interno del vehículo (ejemplo: <code>ABC-123</code> o <code>TRACTO-02</code>).</li>
+        <li><strong>Identificador:</strong> El número IMEI físico del GPS (15 dígitos).</li>
+        <li><strong>Grupo:</strong> Selecciona el Grupo creado en el Paso 1 (ejemplo: <code>Transportes Los Andes</code>).</li>
+      </ul>
+    </li>
+    <li>Haz clic en <strong>Guardar</strong>. <em>(Repite este paso para todos los vehículos de esa empresa)</em>.</li>
+  </ol>
+
+  <h3>Paso 3: Crear la Cuenta de Acceso para el Cliente Final</h3>
+  <ol>
+    <li>Ve a <strong>Ajustes (⚙️) ➡️ Clientes</strong> (o <em>Usuarios</em>).</li>
+    <li>Haz clic en el botón <strong>+</strong>.</li>
+    <li>Completa los datos de la cuenta:
+      <ul>
+        <li><strong>Empresa / Razón Social:</strong> Nombre comercial o fiscal de tu cliente.</li>
+        <li><strong>Nombre de Contacto:</strong> Persona responsable (ejemplo: <code>Carlos Mendoza</code>).</li>
+        <li><strong>Correo Electrónico:</strong> Correo con el que iniciará sesión (ejemplo: <code>logistica@losandes.com</code>).</li>
+        <li><strong>Contraseña:</strong> Clave de acceso inicial para tu cliente.</li>
+        <li><strong>RUC / DNI:</strong> Documento de identidad fiscal.</li>
+        <li><strong>Teléfono:</strong> Celular para contacto y soporte.</li>
+      </ul>
+    </li>
+    <li>Haz clic en <strong>Guardar</strong>.</li>
+  </ol>
+
+  <h3>Paso 4: Vincular la Flota al Cliente (Conexiones 🔗)</h3>
+  <ol>
+    <li>En tu lista de <strong>Ajustes ➡️ Clientes</strong>, localiza la fila del cliente que acabas de crear.</li>
+    <li>Haz clic en el icono del eslabón <strong>Conexiones (🔗)</strong>.</li>
+    <li>Se abrirá la ventana de permisos:
+      <ul>
+        <li>Dirígete a la pestaña <strong>Grupos</strong>.</li>
+        <li>Marca la casilla del grupo correspondiente (ejemplo: <code>Transportes Los Andes</code>).</li>
+      </ul>
+    </li>
+    <li>Cierra la ventana.</li>
+  </ol>
+
+  <div class="callout">
+    <div class="callout-title">✅ ¡Listo! Operación Completada</div>
+    En cuanto tu cliente inicie sesión en tu enlace con su correo y clave, verá de inmediato en el mapa todos los vehículos de su empresa. Si el cliente adquiere más vehículos en el futuro, solo debes dar de alta el nuevo GPS seleccionando ese mismo Grupo y le aparecerá automáticamente.
+  </div>
+
+  <h2>3. Manejo de Clientes con Múltiples Áreas o Sub-Flotas</h2>
+  <p>Cuando un cliente grande necesita que cada departamento vea únicamente sus vehículos asignados (y que la Gerencia General vea todo), se utiliza una <strong>Estructura Jerárquica de Grupos</strong>:</p>
+
+  <pre>
+📁 Constructora ABC - General  (Grupo Padre)
+   ├── 📁 Constructora ABC - Camiones   (Área de Logística / Carga)
+   ├── 📁 Constructora ABC - Autos      (Supervisores y Ventas)
+   └── 📁 Constructora ABC - Celulares  (Personal de campo con App GPS)</pre>
+
+  <h3>Configuración en 3 Pasos:</h3>
+  <ol>
+    <li><strong>Crear el Grupo Padre (General):</strong> En <em>Ajustes ➡️ Grupos</em>, crea <code>Constructora ABC - General</code>. En la sección <em>Extra ➡️ Grupo</em> déjalo vacío (es la raíz).</li>
+    <li><strong>Crear los Subgrupos (Hijos):</strong> Crea los grupos <code>Constructora ABC - Camiones</code>, <code>Autos</code> y <code>Celulares</code>. En cada uno, despliega <em>Extra ➡️ Grupo</em> y selecciona <code>Constructora ABC - General</code>.</li>
+    <li><strong>Asignar Permisos en Conexiones (🔗):</strong>
+      <ul>
+        <li><code>camiones@cliente.com</code> ➡️ Conexiones ➡️ Marca únicamente <code>Constructora ABC - Camiones</code>.</li>
+        <li><code>autos@cliente.com</code> ➡️ Conexiones ➡️ Marca únicamente <code>Constructora ABC - Autos</code>.</li>
+        <li><code>gerencia@cliente.com</code> ➡️ Conexiones ➡️ Marca el Grupo Padre <code>Constructora ABC - General</code> (tendrá visibilidad total).</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h2>4. Canales Privados de Notificaciones (WhatsApp y Telegram)</h2>
+
+  <h3>A. WhatsApp Corporativo Propio</h3>
+  <ol>
+    <li>Ve a <strong>Ajustes (⚙️) ➡️ WhatsApp</strong>.</li>
+    <li>Verás el estado de tu canal privado: <strong>Canal Propio: [Tu Empresa]</strong>.</li>
+    <li>Haz clic en <strong>Conectar WhatsApp</strong> para generar tu código QR.</li>
+    <li>Abre WhatsApp en tu celular (se recomienda WhatsApp Business) ➡️ <em>Dispositivos vinculados</em> ➡️ <em>Vincular un dispositivo</em>.</li>
+    <li>Escanea el código QR de la pantalla hasta ver 🟢 <strong>WhatsApp Conectado</strong>.</li>
+  </ol>
+
+  <h3>B. Bot de Telegram Propio</h3>
+  <ol>
+    <li>Abre Telegram y escribe a <strong>@BotFather</strong> el comando <code>/newbot</code>. Te entregará un <strong>Token HTTP API</strong>.</li>
+    <li>En tu panel, ve a <strong>Ajustes (⚙️) ➡️ Telegram Bot</strong>, pega el token y haz clic en <strong>Vincular Bot</strong>.</li>
+    <li>Comparte el enlace de tu bot con tus clientes. Al iniciarlo obtendrán su <strong>Chat ID</strong>, el cual ingresas en su ficha (<em>Ajustes ➡️ Clientes ➡️ Editar ➡️ Telegram Chat ID</em>).</li>
+  </ol>
+
+  <h2>5. Privacidad y Seguridad Entre Clientes</h2>
+  <ul>
+    <li><strong>Geocercas Confidenciales:</strong> Cada cliente solo visualiza las geocercas que él mismo dibuja o que tú le asignas. El Cliente A jamás verá las rutas o almacenes del Cliente B.</li>
+    <li><strong>Alertas Inteligentes Sin Cruces:</strong> Si un vehículo del Cliente B transita accidentalmente sobre una geocerca del Cliente A, el sistema no emite ninguna alerta, protegiendo la confidencialidad operativa.</li>
+    <li><strong>Reportes y Recorridos Aislados:</strong> La información histórica y descargas en Excel/PDF son estrictamente privadas.</li>
+  </ul>
+
+  <h2>6. Acceso Móvil para tus Clientes (Aplicación Web PWA)</h2>
+  <ol>
+    <li>Tu cliente ingresa desde el navegador de su teléfono a tu enlace (ej. <code>https://gps.tuempresa.com</code>).</li>
+    <li><strong>En teléfonos Android:</strong> Pulsar el aviso inferior <em>"Agregar a la pantalla principal"</em>.</li>
+    <li><strong>En iPhone (iOS):</strong> Pulsar el botón <em>Compartir</em> y seleccionar <em>"Agregar al inicio"</em>.</li>
+    <li>La aplicación quedará instalada con tu logotipo corporativo en su menú de aplicaciones.</li>
+  </ol>
+
+  <h2>7. Tabla Resumen de Operaciones Frecuentes</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Tarea a Realizar</th>
+        <th>Dónde se Configura</th>
+        <th>Acción Clave</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Nuevo Cliente Corporativo</strong></td>
+        <td><code>Ajustes ➡️ Grupos</code></td>
+        <td>Crear el grupo con el nombre de la empresa.</td>
+      </tr>
+      <tr>
+        <td><strong>Dar de alta un GPS</strong></td>
+        <td><code>Ajustes ➡️ Dispositivos</code></td>
+        <td>Colocar Placa en <em>Nombre</em>, IMEI de 15 dígitos y asignar al <em>Grupo</em>.</td>
+      </tr>
+      <tr>
+        <td><strong>Entregar acceso al Cliente</strong></td>
+        <td><code>Ajustes ➡️ Clientes</code></td>
+        <td>Crear usuario con su correo y contraseña.</td>
+      </tr>
+      <tr>
+        <td><strong>Habilitar vehículos al Usuario</strong></td>
+        <td><code>Ajustes ➡️ Clientes ➡️ Conexiones (🔗)</code></td>
+        <td>En la pestaña <em>Grupos</em>, marcar la casilla del cliente.</td>
+      </tr>
+      <tr>
+        <td><strong>Organizar por departamentos</strong></td>
+        <td><code>Ajustes ➡️ Grupos ➡️ Extra</code></td>
+        <td>En <em>Grupo</em>, seleccionar el Grupo General como Padre.</td>
+      </tr>
+      <tr>
+        <td><strong>Revisar alertas por WhatsApp</strong></td>
+        <td><code>Ajustes ➡️ WhatsApp</code></td>
+        <td>Mantener en estado 🟢 <em>Conectado</em>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>

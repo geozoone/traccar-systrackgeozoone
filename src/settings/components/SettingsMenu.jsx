@@ -32,16 +32,27 @@ import TopicIcon from '@mui/icons-material/Topic';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import CurrencyExchangeIcon from '@mui/icons-material/CurrencyExchange';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import makeStyles from '@mui/styles/makeStyles';
 
 const MenuItem = ({
-	title, link, icon, selected,
-}) => (
-	<ListItemButton key={link} component={Link} to={link} selected={selected}>
-		<ListItemIcon>{icon}</ListItemIcon>
-		<ListItemText primary={title} />
-	</ListItemButton>
-);
+	title, link, icon, selected, target,
+}) => {
+	if (target === '_blank') {
+		return (
+			<ListItemButton key={link} component="a" href={link} target="_blank" rel="noopener noreferrer">
+				<ListItemIcon>{icon}</ListItemIcon>
+				<ListItemText primary={title} />
+			</ListItemButton>
+		);
+	}
+	return (
+		<ListItemButton key={link} component={Link} to={link} selected={selected}>
+			<ListItemIcon>{icon}</ListItemIcon>
+			<ListItemText primary={title} />
+		</ListItemButton>
+	);
+};
 
 const useStyles = makeStyles((theme) => ({
 	menu: {
@@ -257,6 +268,12 @@ const SettingsMenu = () => {
 									link="/settings/apisms"
 									icon={<SmsIcon />}
 									selected={location.pathname === '/settings/apisms'}
+								/>
+								<MenuItem
+									title='Manual de Operación'
+									link="/manual.html"
+									icon={<MenuBookIcon />}
+									target="_blank"
 								/>
 							</>
 						)}
