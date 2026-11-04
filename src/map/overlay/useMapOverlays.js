@@ -72,7 +72,7 @@ export default () => {
     {
       id: 'tomTomFlow',
       title: t('mapTomTomFlow'),
-      source: sourceCustom([`https://api.tomtom.com/traffic/map/4/tile/flow/absolute/{z}/{x}/{y}.png?key=${tomTomKey}`]),
+      source: sourceCustom([`https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?tileSize=256&thickness=6&key=${tomTomKey}`]),
       available: !!tomTomKey,
       attribute: 'tomTomKey',
     },
