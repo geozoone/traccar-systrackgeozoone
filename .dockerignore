@@ -1,8 +1,8 @@
 node_modules
+build
 .git
 .gitignore
-build
-dist
-.eslintcache
+Dockerfile
+.dockerignore
+*.md
 *.log
-README.md

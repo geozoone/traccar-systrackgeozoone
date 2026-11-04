@@ -14,6 +14,10 @@ export default defineConfig(({ mode }) => {
 			// Evita que Vite "salte" a otro puerto si el 3000 está ocupado
 			// (nginx espera exactamente el 3000)
 			strictPort: true,
+			fs: {
+				strict: true,
+				deny: ['.env', '.env.*', '*.{crt,pem}', 'Dockerfile', 'docker-compose.yml'],
+			},
 			proxy: {
 				// Destinos parametrizables por variables de entorno para Docker
 				// (TRACCAR_WS_URL / TRACCAR_API_URL / MODULO_URL).
@@ -33,8 +37,14 @@ export default defineConfig(({ mode }) => {
 				}
 			},
 		},
+		preview: {
+			port: 3000,
+			strictPort: true,
+			host: '0.0.0.0',
+		},
 		build: {
 			outDir: 'build',
+			chunkSizeWarningLimit: 3000,
 		},
 		define: {
 			'process.env': JSON.stringify(env),
@@ -46,10 +56,11 @@ export default defineConfig(({ mode }) => {
 			VitePWA({
 				registerType: 'autoUpdate',
 				devOptions: {
-					enabled: true,
+					enabled: false,
 				},
 				workbox: {
-					navigateFallbackDenylist: [/^\/api/],
+					maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+					navigateFallbackDenylist: [/^\/api/, /^\/modulo/, /^\/manual\.html/],
 				},
 				manifest: {
 					short_name: 'Geozoone',

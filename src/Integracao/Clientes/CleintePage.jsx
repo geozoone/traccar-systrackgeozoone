@@ -951,8 +951,11 @@ const ClientePage = () => {
 
                             {/* SECCIÓN SUBIDA DE LOGO DEL CLIENTE */}
                             <div className="form-group col-sm-6">
-                                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 'bold' }}>
                                     Logo de la Empresa (Pantalla de Login):
+                                </Typography>
+                                <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mb: 1 }}>
+                                    Tamaño ideal: <strong>480 × 200 px</strong> en <strong>PNG transparente</strong> (con letras claras o blancas).
                                 </Typography>
                                 <Button
                                     variant="outlined"
@@ -961,7 +964,7 @@ const ClientePage = () => {
                                     fullWidth
                                     sx={{ mb: 1 }}
                                 >
-                                    Seleccionar Logo (PNG / SVG / JPG)
+                                    Seleccionar Logo (PNG / SVG — 480x200px)
                                     <input
                                         type="file"
                                         hidden
@@ -1005,8 +1008,11 @@ const ClientePage = () => {
 
                             {/* SECCIÓN SUBIDA DE FONDO DEL CLIENTE */}
                             <div className="form-group col-sm-6">
-                                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                                <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 'bold' }}>
                                     Fondo de Pantalla de Login:
+                                </Typography>
+                                <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mb: 1 }}>
+                                    Tamaño ideal: <strong>1920 × 1080 px (Full HD)</strong>. Si lo dejas vacío, usa un fondo oscuro adaptable.
                                 </Typography>
                                 <Button
                                     variant="outlined"
@@ -1015,7 +1021,7 @@ const ClientePage = () => {
                                     fullWidth
                                     sx={{ mb: 1 }}
                                 >
-                                    Seleccionar Fondo (JPG / PNG)
+                                    Seleccionar Fondo (JPG / PNG — 1920x1080px)
                                     <input
                                         type="file"
                                         hidden

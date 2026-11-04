@@ -16,8 +16,10 @@ RUN npm install
 
 COPY . .
 
+# Compilar bundle optimizado y minificado de producción (carpeta /app/build)
+RUN npm run build
+
 EXPOSE 3000
 
-# --host 0.0.0.0 es imprescindible para que el puerto 3000 sea
-# accesible desde fuera del contenedor (en el VPS nginx proxiea a él)
-CMD ["npm", "start", "--", "--host", "0.0.0.0"]
+# Servir el build de producción en el puerto 3000 conservando los proxies (/api, /api/socket y /modulo)
+CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "3000"]
