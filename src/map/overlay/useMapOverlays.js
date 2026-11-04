@@ -70,9 +70,15 @@ export default () => {
       attribute: 'openWeatherKey',
     },
     {
+      id: 'googleTraffic',
+      title: 'Tráfico en Vivo (Calles y Avenidas)',
+      source: sourceCustom([0, 1, 2, 3].map((i) => `https://mt${i}.google.com/vt/lyrs=m,traffic&hl=es&x={x}&y={y}&z={z}&s=Ga`)),
+      available: true,
+    },
+    {
       id: 'tomTomFlow',
       title: t('mapTomTomFlow'),
-      source: sourceCustom([`https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?tileSize=256&thickness=6&key=${tomTomKey}`]),
+      source: sourceCustom([`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?tileSize=256&thickness=6&key=${tomTomKey}`]),
       available: !!tomTomKey,
       attribute: 'tomTomKey',
     },
