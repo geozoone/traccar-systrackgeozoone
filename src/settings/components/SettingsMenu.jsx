@@ -180,10 +180,10 @@ const SettingsMenu = () => {
 
 						{admin && (
 							<MenuItem
-								title='Clientes'
+								title='Clientes y Usuarios'
 								link="/settings/clientes"
 								icon={<RecentActorsIcon />}
-								selected={location.pathname === '/settings/clientes'}
+								selected={location.pathname.startsWith('/settings/cliente')}
 							/>
 						)}
 
@@ -235,10 +235,10 @@ const SettingsMenu = () => {
 						) ||
 							revenda && (
 								<MenuItem
-									title='Clientes'
+									title='Clientes y Usuarios'
 									link="/settings/clientes"
 									icon={<RecentActorsIcon />}
-									selected={location.pathname === '/settings/clientes'}
+									selected={location.pathname.startsWith('/settings/cliente')}
 								/>
 							)
 						}

@@ -48,7 +48,7 @@ const PageTitle = ({ icon, breadcrumbs }) => {
 };
 
 const EditItemView = ({
-	children, endpoint, item, card, setItem, defaultItem, validate, onItemSaved, menu, breadcrumbs,
+	children, endpoint, item, card, setItem, defaultItem, validate, onItemSaved, menu, breadcrumbs, title,
 }) => {
 	const navigate = useNavigate();
 	const classes = useStyles();
@@ -108,7 +108,7 @@ const EditItemView = ({
 	return (
 		<PageLayout menu={menu} breadcrumbs={breadcrumbs}>
 			<Toolbar className={classes.header}>
-                <PageTitle icon={<RecentActorsIcon sx={{ margin: 1, fontSize: 45 }} />} breadcrumbs={'Registro de Cliente'} />
+                <PageTitle icon={<RecentActorsIcon sx={{ margin: 1, fontSize: 45 }} />} breadcrumbs={title || 'Registro de Cliente'} />
             </Toolbar>
 			<Container className={classes.container}>
 				{item ? children : (

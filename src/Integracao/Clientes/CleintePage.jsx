@@ -161,6 +161,10 @@ const ClientePage = () => {
     const query = useQuery();
     const [queryHandled, setQueryHandled] = useState(false);
     const attribute = query.get('attribute');
+    const queryModoUsuario = query.get('modo') === 'usuario';
+    const queryEmpresa = query.get('empresa') || '';
+    const queryRuc = query.get('ruc') || '';
+    const isSubUserMode = Boolean(queryModoUsuario || item?.attributes?.esSubUsuario);
 
     useEffect(() => {
         if (!queryHandled && item && attribute) {
@@ -182,7 +186,14 @@ const ClientePage = () => {
         }
     };
 
-    const validate = () => item && item.name && item.email && (item.attributes.informacoes && item.attributes.informacoes.cpf || false) && item.phone && (item.id || item.password);
+    const validate = () => Boolean(
+        item
+        && item.name
+        && item.email
+        && (isSubUserMode || (item.attributes?.informacoes && item.attributes.informacoes.cpf))
+        && item.phone
+        && (item.id || item.password)
+    );
 
     useEffect(useCatch(async () => {
         if (id) {
@@ -205,8 +216,35 @@ const ClientePage = () => {
                     }
                 }
             } catch (e) {}
+        } else if (queryModoUsuario) {
+            setItem({
+                ...item,
+                readonly: true,
+                deviceReadonly: true,
+                limitCommands: true,
+                attributes: {
+                    nivel: 3,
+                    esSubUsuario: true,
+                    tipoCuenta: 'operador',
+                    empresa: queryEmpresa,
+                    cargo: 'Operador / Monitoreo',
+                    informacoes: {
+                        empresa: queryEmpresa,
+                        cpf: queryRuc || 'S/N',
+                        cargo: 'Operador / Monitoreo',
+                    },
+                },
+            });
         } else {
-            setItem({ ...item, attributes: { nivel: 3, informacoes: {} } });
+            setItem({
+                ...item,
+                deviceReadonly: true,
+                attributes: {
+                    nivel: 3,
+                    tipoCuenta: 'titular',
+                    informacoes: {},
+                },
+            });
         }
     }), []);
 
@@ -312,13 +350,30 @@ const ClientePage = () => {
             onItemSaved={onItemSaved}
             menu={<SettingsMenu />}
             breadcrumbs={['settingsTitle', 'settingsUser']}
+            title={
+                isSubUserMode
+                    ? (id ? 'Editar Usuario / Operador de Empresa' : 'Nuevo Usuario / Operador de Empresa')
+                    : (id ? 'Editar Empresa Cliente' : 'Registro de Nueva Empresa Cliente')
+            }
         >
             {item && (
                 <>
+                    {isSubUserMode && (
+                        <Alert severity="info" sx={{ mb: 2 }}>
+                            <strong>
+                                👤 {id ? 'Usuario / Operador de la empresa:' : 'Creando nuevo Usuario / Operador para la empresa:'}{' '}
+                                {item.attributes?.empresa || (item.attributes?.informacoes && item.attributes.informacoes.empresa) || queryEmpresa || 'Empresa Cliente'}
+                            </strong>
+                            <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>
+                                Los datos fiscales de la empresa ya están vinculados automáticamente. Después de guardar, haz clic en el icono de <strong>Conexiones (🔗)</strong> en la fila de este usuario para elegir el Grupo o Subgrupo de vehículos que podrá visualizar.
+                            </div>
+                        </Alert>
+                    )}
+
                     <Accordion defaultExpanded={!attribute}>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Typography variant="subtitle1">
-                                Información del Cliente y Empresa
+                            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                {isSubUserMode ? 'Datos del Usuario / Operador' : 'Información de la Empresa Cliente y Contacto Principal'}
                             </Typography>
                         </AccordionSummary>
 
@@ -326,6 +381,7 @@ const ClientePage = () => {
                             <span className={`form-group col-sm-6 ${classes.details} `}>
                                 <TextField
                                     value={item.attributes?.empresa || (item.attributes?.informacoes && item.attributes.informacoes.empresa) || ''}
+                                    disabled={Boolean(queryModoUsuario && queryEmpresa)}
                                     onChange={(e) => {
                                         const val = e.target.value;
                                         setItem({
@@ -342,6 +398,7 @@ const ClientePage = () => {
                                     }}
                                     label={'Empresa / Razón Social'}
                                     placeholder={'Ej: Transportes 26 de Mayo SA'}
+                                    helperText={queryModoUsuario && queryEmpresa ? 'Autocompletado desde la empresa seleccionada' : ''}
                                 />
                             </span>
 
@@ -349,14 +406,15 @@ const ClientePage = () => {
                                 <TextField
                                     value={item.name || ''}
                                     onChange={(event) => setItem({ ...item, name: event.target.value })}
-                                    label={'Nombre de Usuario (Contacto)'}
-                                    placeholder={'Ej: Juanjo García'}
+                                    label={isSubUserMode ? 'Nombre del Usuario / Operador' : 'Nombre de Usuario (Contacto Principal)'}
+                                    placeholder={isSubUserMode ? 'Ej: Luis Torres (Supervisor Norte)' : 'Ej: Juanjo García'}
                                 />
                             </span>
 
                             <span className={`form-group col-sm-4 ${classes.details} `}>
                                 <TextField
                                     value={(item.attributes?.informacoes && item.attributes.informacoes.cpf) || ''}
+                                    disabled={Boolean(queryModoUsuario && queryRuc)}
                                     onChange={(e) => setItem({
                                         ...item,
                                         attributes: {
@@ -403,7 +461,38 @@ const ClientePage = () => {
                                 />
                             </span>
 
-                            <span className={`form-group col-sm-4 ${classes.details} `}>
+                            <span className={`form-group col-sm-6 ${classes.details} `}>
+                                <FormControl fullWidth>
+                                    <InputLabel>Tipo de Permiso del Usuario</InputLabel>
+                                    <Select
+                                        label="Tipo de Permiso del Usuario"
+                                        value={item.readonly ? 'operador' : 'titular'}
+                                        onChange={(e) => {
+                                            const role = e.target.value;
+                                            const isOp = role === 'operador';
+                                            setItem({
+                                                ...item,
+                                                readonly: isOp,
+                                                deviceReadonly: true,
+                                                limitCommands: isOp,
+                                                attributes: {
+                                                    ...item.attributes,
+                                                    tipoCuenta: role,
+                                                },
+                                            });
+                                        }}
+                                    >
+                                        <MenuItem value="operador">
+                                            👁️ Operador / Solo Lectura (Solo ve mapa y reportes de su grupo)
+                                        </MenuItem>
+                                        <MenuItem value="titular">
+                                            🏢 Titular / Supervisor (Puede crear geocercas y alertas)
+                                        </MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </span>
+
+                            <span className={`form-group col-sm-6 ${classes.details} `}>
                                 <TextField
                                     value={item.attributes?.telegramChatId || (item.attributes?.informacoes && item.attributes.informacoes.telegramChatId) || ''}
                                     onChange={(e) => {
@@ -420,113 +509,117 @@ const ClientePage = () => {
                                             },
                                         });
                                     }}
-                                    label={'Telegram Chat ID'}
+                                    label={'Telegram Chat ID (Opcional)'}
                                     placeholder={'Ej: 123456789'}
                                     helperText={'Para recibir alertas de Traccar por Telegram'}
                                 />
                             </span>
 
-                            <span className={`form-group col-sm-9 ${classes.details} `}>
-                                <TextField
-                                    value={(item.attributes?.informacoes && item.attributes.informacoes.address) || ''}
-                                    onChange={(e) => setItem({
-                                        ...item,
-                                        attributes: {
-                                            ...item.attributes,
-                                            informacoes: {
-                                                ...item.attributes?.informacoes,
-                                                address: e.target.value,
-                                            },
-                                        },
-                                    })}
-                                    label={'Dirección'}
-                                />
-                            </span>
+                            {!isSubUserMode && (
+                                <>
+                                    <span className={`form-group col-sm-9 ${classes.details} `}>
+                                        <TextField
+                                            value={(item.attributes?.informacoes && item.attributes.informacoes.address) || ''}
+                                            onChange={(e) => setItem({
+                                                ...item,
+                                                attributes: {
+                                                    ...item.attributes,
+                                                    informacoes: {
+                                                        ...item.attributes?.informacoes,
+                                                        address: e.target.value,
+                                                    },
+                                                },
+                                            })}
+                                            label={'Dirección'}
+                                        />
+                                    </span>
 
-                            <span className={`form-group col-sm-3 ${classes.details} `}>
-                                <TextField
-                                    value={(item.attributes?.informacoes && item.attributes.informacoes.addressNumber) || ''}
-                                    onChange={(e) => setItem({
-                                        ...item,
-                                        attributes: {
-                                            ...item.attributes,
-                                            informacoes: {
-                                                ...item.attributes?.informacoes,
-                                                addressNumber: e.target.value,
-                                            },
-                                        },
-                                    })}
-                                    label={'Número / Mz / Lote'}
-                                />
-                            </span>
+                                    <span className={`form-group col-sm-3 ${classes.details} `}>
+                                        <TextField
+                                            value={(item.attributes?.informacoes && item.attributes.informacoes.addressNumber) || ''}
+                                            onChange={(e) => setItem({
+                                                ...item,
+                                                attributes: {
+                                                    ...item.attributes,
+                                                    informacoes: {
+                                                        ...item.attributes?.informacoes,
+                                                        addressNumber: e.target.value,
+                                                    },
+                                                },
+                                            })}
+                                            label={'Número / Mz / Lote'}
+                                        />
+                                    </span>
 
-                            <span className={`form-group col-sm-4 ${classes.details} `}>
-                                <TextField
-                                    value={(item.attributes?.informacoes && item.attributes.informacoes.province) || ''}
-                                    onChange={(e) => setItem({
-                                        ...item,
-                                        attributes: {
-                                            ...item.attributes,
-                                            informacoes: {
-                                                ...item.attributes?.informacoes,
-                                                province: e.target.value,
-                                            },
-                                        },
-                                    })}
-                                    label={'Distrito / Urbanización'}
-                                />
-                            </span>
+                                    <span className={`form-group col-sm-4 ${classes.details} `}>
+                                        <TextField
+                                            value={(item.attributes?.informacoes && item.attributes.informacoes.province) || ''}
+                                            onChange={(e) => setItem({
+                                                ...item,
+                                                attributes: {
+                                                    ...item.attributes,
+                                                    informacoes: {
+                                                        ...item.attributes?.informacoes,
+                                                        province: e.target.value,
+                                                    },
+                                                },
+                                            })}
+                                            label={'Distrito / Urbanización'}
+                                        />
+                                    </span>
 
-                            <span className={`form-group col-sm-4 ${classes.details} `}>
-                                <TextField
-                                    value={(item.attributes?.informacoes && item.attributes.informacoes.cityandstate) || ''}
-                                    onChange={(e) => setItem({
-                                        ...item,
-                                        attributes: {
-                                            ...item.attributes,
-                                            informacoes: {
-                                                ...item.attributes?.informacoes,
-                                                cityandstate: e.target.value,
-                                            },
-                                        },
-                                    })}
-                                    label={'Ciudad / Provincia'}
-                                />
-                            </span>
+                                    <span className={`form-group col-sm-4 ${classes.details} `}>
+                                        <TextField
+                                            value={(item.attributes?.informacoes && item.attributes.informacoes.cityandstate) || ''}
+                                            onChange={(e) => setItem({
+                                                ...item,
+                                                attributes: {
+                                                    ...item.attributes,
+                                                    informacoes: {
+                                                        ...item.attributes?.informacoes,
+                                                        cityandstate: e.target.value,
+                                                    },
+                                                },
+                                            })}
+                                            label={'Ciudad / Provincia'}
+                                        />
+                                    </span>
 
-                            <span className={`form-group col-sm-4 ${classes.details} `}>
-                                <TextField
-                                    value={(item.attributes?.informacoes && item.attributes.informacoes.postalCode) || ''}
-                                    onChange={(e) => setItem({
-                                        ...item,
-                                        attributes: {
-                                            ...item.attributes,
-                                            informacoes: {
-                                                ...item.attributes?.informacoes,
-                                                postalCode: e.target.value,
-                                            },
-                                        },
-                                    })}
-                                    label={'Código Postal'}
-                                />
-                            </span>
+                                    <span className={`form-group col-sm-4 ${classes.details} `}>
+                                        <TextField
+                                            value={(item.attributes?.informacoes && item.attributes.informacoes.postalCode) || ''}
+                                            onChange={(e) => setItem({
+                                                ...item,
+                                                attributes: {
+                                                    ...item.attributes,
+                                                    informacoes: {
+                                                        ...item.attributes?.informacoes,
+                                                        postalCode: e.target.value,
+                                                    },
+                                                },
+                                            })}
+                                            label={'Código Postal'}
+                                        />
+                                    </span>
 
-                            <span className={`form-group col-sm-12 ${classes.details} `}>
-                                <TextField
-                                    value={(item.attributes?.informacoes && item.attributes.informacoes.complement) || ''}
-                                    onChange={(e) => setItem({
-                                        ...item,
-                                        attributes: {
-                                            ...item.attributes,
-                                            informacoes: {
-                                                ...item.attributes?.informacoes,
-                                                complement: e.target.value,
-                                            },
-                                        },
-                                    })}
-                                    label={'Referencia / Complemento'}
-                                />
-                            </span>
+                                    <span className={`form-group col-sm-12 ${classes.details} `}>
+                                        <TextField
+                                            value={(item.attributes?.informacoes && item.attributes.informacoes.complement) || ''}
+                                            onChange={(e) => setItem({
+                                                ...item,
+                                                attributes: {
+                                                    ...item.attributes,
+                                                    informacoes: {
+                                                        ...item.attributes?.informacoes,
+                                                        complement: e.target.value,
+                                                    },
+                                                },
+                                            })}
+                                            label={'Referencia / Complemento'}
+                                        />
+                                    </span>
+                                </>
+                            )}
                         </AccordionDetails>
                     </Accordion>
 
@@ -800,6 +893,7 @@ const ClientePage = () => {
                     </Accordion>
 
                     {/* ACORDEÓN DE MARCA Y DOMINIO PROPIO (CLIENTE ESPECIAL / VIP) */}
+                    {!isSubUserMode && (
                     <Accordion>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                             <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
@@ -976,6 +1070,7 @@ const ClientePage = () => {
                             </div>
                         </AccordionDetails>
                     </Accordion>
+                    )}
 
                     <EditAttributesAccordion
                         attribute={attribute}
