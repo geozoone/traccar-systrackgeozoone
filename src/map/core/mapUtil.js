@@ -36,10 +36,33 @@ export const prepareIcon = (background, icon, color) => {
   canvas.style.height = `${background.height}px`;
 
   const context = canvas.getContext('2d');
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const radius = Math.min(cx, cy) - (2 * devicePixelRatio);
+
+  // Dibujar base original
   context.drawImage(background, 0, 0, canvas.width, canvas.height);
 
+  // Anillo exterior oscuro de alto contraste para que nunca se pierda sobre calles blancas ni satélite
+  if (color) {
+    context.save();
+    context.beginPath();
+    context.arc(cx, cy, radius, 0, 2 * Math.PI);
+    context.lineWidth = 3.2 * devicePixelRatio;
+    context.strokeStyle = '#0f172a';
+    context.stroke();
+
+    // Anillo interior con el color de estado vivo del vehículo
+    context.beginPath();
+    context.arc(cx, cy, radius - (2 * devicePixelRatio), 0, 2 * Math.PI);
+    context.lineWidth = 2.2 * devicePixelRatio;
+    context.strokeStyle = color;
+    context.stroke();
+    context.restore();
+  }
+
   if (icon) {
-    const iconRatio = 0.5;
+    const iconRatio = 0.56;
     const imageWidth = canvas.width * iconRatio;
     const imageHeight = canvas.height * iconRatio;
     context.drawImage(canvasTintImage(icon, color), (canvas.width - imageWidth) / 2, (canvas.height - imageHeight) / 2, imageWidth, imageHeight);
