@@ -636,6 +636,8 @@ const ClientePage = () => {
                                     value={item.email || ''}
                                     onChange={(event) => setItem({ ...item, email: event.target.value })}
                                     label={t('userEmail')}
+                                    placeholder="monitoreo@dominio.com o usuario@revendedor.com"
+                                    helperText="Estándar: monitoreo@<dominio>.com (Central) o <usuario>@<dominio>.com"
                                     disabled={fixedEmail}
                                 />
                             </span>

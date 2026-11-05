@@ -276,13 +276,13 @@
 
   <h3>Paso 3: Crear la Cuenta de Acceso para el Cliente Final</h3>
   <ol>
-    <li>Ve a <strong>Ajustes (⚙️) ➡️ Clientes</strong> (o <em>Usuarios</em>).</li>
-    <li>Haz clic en el botón <strong>+</strong>.</li>
+    <li>Ve a <strong>Ajustes (⚙️) ➡️ Clientes y Usuarios</strong>.</li>
+    <li>Haz clic en el botón <strong>🏢 Nueva Empresa Cliente</strong> (o en <strong>[👤+ Usuario]</strong> en la fila de la empresa para agregar un operador adicional).</li>
     <li>Completa los datos de la cuenta:
       <ul>
         <li><strong>Empresa / Razón Social:</strong> Nombre comercial o fiscal de tu cliente.</li>
         <li><strong>Nombre de Contacto:</strong> Persona responsable (ejemplo: <code>Carlos Mendoza</code>).</li>
-        <li><strong>Correo Electrónico:</strong> Correo con el que iniciará sesión (ejemplo: <code>logistica@losandes.com</code>).</li>
+        <li><strong>Correo Electrónico (Usuario):</strong> Sigue el estándar oficial de nomenclatura detallado en la tabla inferior.</li>
         <li><strong>Contraseña:</strong> Clave de acceso inicial para tu cliente.</li>
         <li><strong>RUC / DNI:</strong> Documento de identidad fiscal.</li>
         <li><strong>Teléfono:</strong> Celular para contacto y soporte.</li>
@@ -290,6 +290,41 @@
     </li>
     <li>Haz clic en <strong>Guardar</strong>.</li>
   </ol>
+
+  <div class="callout">
+    <strong>🏷️ Estándar Oficial de Nomenclatura de Usuarios y Correos:</strong>
+    <table style="margin-top: 8px; margin-bottom: 4px;">
+      <thead>
+        <tr>
+          <th>Nivel / Rol</th>
+          <th>Formato Estándar de Correo</th>
+          <th>Ejemplo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Cuenta Maestra Revendedor</strong></td>
+          <td><code>urevgps@&lt;turevendedor&gt;.com</code></td>
+          <td><code>urevgps@ubiqsat.com</code></td>
+        </tr>
+        <tr>
+          <td><strong>Central Monitoreo Revendedor</strong></td>
+          <td><code>monitoreo@&lt;turevendedor&gt;.com</code></td>
+          <td><code>monitoreo@ubiqsat.com</code></td>
+        </tr>
+        <tr>
+          <td><strong>Cliente sin dominio propio</strong></td>
+          <td><code>&lt;usuario&gt;@&lt;turevendedor&gt;.com</code></td>
+          <td><code>bguerrero@ubiqsat.com</code></td>
+        </tr>
+        <tr>
+          <td><strong>Cliente Corporativo (con dominio)</strong></td>
+          <td><code>monitoreo@&lt;dominiocliente&gt;.com</code> / <code>&lt;usuario&gt;@&lt;dominiocliente&gt;.com</code></td>
+          <td><code>monitoreo@empresa.com</code> / <code>cramirez@empresa.com</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
   <h3>Paso 4: Vincular la Flota al Cliente (Conexiones 🔗)</h3>
   <ol>

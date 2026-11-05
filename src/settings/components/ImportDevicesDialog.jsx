@@ -295,6 +295,7 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
         body: JSON.stringify({
           devices: parsedDevices,
           userId: selectedUser || currentUser?.id,
+          adminUserId: currentUser?.id,
           groupId: selectedGroup || null,
           updateExisting,
         }),
@@ -385,11 +386,18 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
               label="Asignar a Cliente / Empresa"
               onChange={(e) => setSelectedUser(e.target.value)}
             >
-              {usersList.map((u) => (
-                <MenuItem key={u.id} value={u.id}>
-                  {u.name} ({u.email || u.login})
-                </MenuItem>
-              ))}
+              {usersList.map((u) => {
+                const roleTag = u.administrator
+                  ? '👑 [SUPERADMIN]'
+                  : u.attributes?.nivel == 2
+                    ? '🏢 [REVENDA]'
+                    : '👤 [CLIENTE]';
+                return (
+                  <MenuItem key={u.id} value={u.id}>
+                    {roleTag} {u.name} ({u.email || u.login})
+                  </MenuItem>
+                );
+              })}
             </Select>
           </FormControl>
 

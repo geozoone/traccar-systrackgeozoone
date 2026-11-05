@@ -317,6 +317,8 @@ const ClientePage = () => {
                                         value={item.email || ''}
                                         onChange={(event) => setItem({ ...item, email: event.target.value })}
                                         label={t('userEmail')}
+                                        placeholder="urevgps@ubiqsat.com"
+                                        helperText="Estándar oficial Revendedor: urevgps@<revendedor>.com"
                                         disabled={fixedEmail}
                                     />
                                 </span>
