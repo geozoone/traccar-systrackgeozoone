@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { groupsActions } from '../../store';
 import {
   Dialog,
   DialogTitle,
@@ -76,6 +77,7 @@ const useStyles = makeStyles((theme) => ({
 
 const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
   const classes = useStyles();
+  const dispatch = useDispatch();
   const fileInputRef = useRef(null);
 
   const groups = useSelector((state) => state.groups.items);
@@ -197,11 +199,14 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
           return '';
         };
 
+        const groupName = getVal('grupo', 'group', 'cuenta', 'accountid', 'empresa', 'flota');
         const name = getVal('placa', 'name', 'nombre', 'deviceid', 'descripcion', 'description', 'vehiculo');
         const uniqueId = getVal('imei', 'uniqueid', 'idunico', 'unique_id', 'serial', 'imeinumber', 'id');
         const model = getVal('modelo', 'model', 'equipmenttype', 'gps');
+        const marca = getVal('marca', 'make', 'vehiclemake');
+        const modeloVehiculo = getVal('modelovehiculo', 'vehiclemodel');
         const phone = getVal('sim', 'phone', 'telefono', 'celular', 'simphonenumber');
-        const contact = getVal('chofer', 'contact', 'conductor', 'contacto');
+        const contact = getVal('chofer', 'contact', 'conductor', 'contacto', 'placa');
         const category = getVal('categoria', 'category', 'tipo', 'vehicletype') || 'car';
         const odometro = getVal('odometrokm', 'odometro', 'odometer');
         const velocidad = getVal('limitevelocidad', 'velocidad', 'speedlimit');
@@ -217,9 +222,12 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
 
         return {
           id: index + 1,
+          groupName,
           name,
           uniqueId,
           model,
+          marca,
+          modeloVehiculo,
           phone,
           contact,
           category: category.toLowerCase(),
@@ -262,14 +270,17 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
     }
   };
 
+  const uniqueFileGroups = Array.from(new Set(parsedDevices.map((d) => d.groupName).filter(Boolean)));
+  const hasFileGroups = uniqueFileGroups.length > 0;
+
   // Enviar importación masiva al backend
   const handleConfirmImport = async () => {
     if (parsedDevices.length === 0) return;
 
-    if (!selectedGroup) {
+    if (!selectedGroup && !hasFileGroups) {
       setStatusMessage({
         type: 'error',
-        text: '⚠️ Es obligatorio seleccionar un Grupo de Flota para organizar estos vehículos y asegurar su visibilidad.',
+        text: '⚠️ Es obligatorio seleccionar un Grupo de Flota (o incluir la columna "grupo" en el Excel) para organizar estos vehículos.',
       });
       return;
     }
@@ -292,10 +303,18 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
       const resData = await response.json();
 
       if (response.ok && resData.success) {
+        const groupsInfo = resData.groupsCreated ? ` (${resData.groupsCreated} grupos creados automáticamente)` : '';
         setStatusMessage({
           type: 'success',
-          text: `¡Importación completada! ${resData.inserted} vehículos creados, ${resData.updated || 0} actualizados, ${resData.skipped || 0} omitidos.`,
+          text: `¡Importación completada! ${resData.inserted} vehículos creados, ${resData.updated || 0} actualizados, ${resData.skipped || 0} omitidos.${groupsInfo}`,
         });
+
+        try {
+          const gRes = await fetch('/api/groups');
+          if (gRes.ok) {
+            dispatch(groupsActions.update(await gRes.json()));
+          }
+        } catch {}
 
         setTimeout(() => {
           if (onImportSuccess) onImportSuccess();
@@ -374,16 +393,22 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
             </Select>
           </FormControl>
 
-          <FormControl fullWidth size="small" required error={!selectedGroup}>
-            <InputLabel id="select-group-label">Asignar a Grupo de Flota (Obligatorio) *</InputLabel>
+          <FormControl fullWidth size="small" required={!hasFileGroups} error={!selectedGroup && !hasFileGroups}>
+            <InputLabel id="select-group-label">
+              {hasFileGroups ? 'Grupo de Flota (Automático desde archivo)' : 'Asignar a Grupo de Flota (Obligatorio) *'}
+            </InputLabel>
             <Select
               labelId="select-group-label"
               value={selectedGroup}
-              label="Asignar a Grupo de Flota (Obligatorio) *"
+              label={hasFileGroups ? 'Grupo de Flota (Automático desde archivo)' : 'Asignar a Grupo de Flota (Obligatorio) *'}
               onChange={(e) => setSelectedGroup(e.target.value)}
             >
-              <MenuItem value="" disabled>
-                <em>-- Selecciona el Grupo de Flota (Obligatorio) --</em>
+              <MenuItem value="">
+                <em>
+                  {hasFileGroups
+                    ? `✨ Crear/asignar los ${uniqueFileGroups.length} grupos de la columna "grupo" automáticamente`
+                    : '-- Selecciona el Grupo de Flota (Obligatorio) --'}
+                </em>
               </MenuItem>
               {Object.values(groups || {}).map((g) => (
                 <MenuItem key={g.id} value={g.id}>
@@ -391,11 +416,15 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
                 </MenuItem>
               ))}
             </Select>
-            {!selectedGroup && (
-              <FormHelperText error sx={{ fontSize: '0.75rem', mt: 0.5 }}>
-                * Obligatorio: Organiza los vehículos bajo la empresa y evita dispositivos huérfanos.
+            {hasFileGroups && !selectedGroup ? (
+              <FormHelperText sx={{ fontSize: '0.75rem', mt: 0.5, color: '#0284c7', fontWeight: 'bold' }}>
+                ✨ Detectados {uniqueFileGroups.length} grupos en el archivo: se crearán y vincularán automáticamente.
               </FormHelperText>
-            )}
+            ) : !selectedGroup ? (
+              <FormHelperText error sx={{ fontSize: '0.75rem', mt: 0.5 }}>
+                * Obligatorio: Selecciona un grupo o incluye la columna &quot;grupo&quot; en tu Excel.
+              </FormHelperText>
+            ) : null}
           </FormControl>
         </Box>
 
@@ -433,6 +462,7 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
               <TableHead>
                 <TableRow>
                   <TableCell>Estado</TableCell>
+                  {hasFileGroups && <TableCell>Grupo</TableCell>}
                   <TableCell>Placa / Nombre</TableCell>
                   <TableCell>IMEI / ID GPS</TableCell>
                   <TableCell>Modelo</TableCell>
@@ -475,6 +505,11 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
                           />
                         )}
                       </TableCell>
+                      {hasFileGroups && (
+                        <TableCell>
+                          <Chip size="small" label={`📁 ${dev.groupName || 'General'}`} variant="outlined" color="primary" />
+                        </TableCell>
+                      )}
                       <TableCell sx={{ fontWeight: 'bold' }}>{dev.name || '—'}</TableCell>
                       <TableCell>{dev.uniqueId || '—'}</TableCell>
                       <TableCell>{dev.model || '—'}</TableCell>
@@ -525,13 +560,13 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
           <Button
             variant="contained"
             color="primary"
-            disabled={loading || parsedDevices.length === 0 || !selectedGroup || (validCount === 0 && !updateExisting)}
+            disabled={loading || parsedDevices.length === 0 || (!selectedGroup && !hasFileGroups) || (validCount === 0 && !updateExisting)}
             onClick={handleConfirmImport}
             sx={{ borderRadius: 2, px: 3, fontWeight: 'bold' }}
           >
             {loading
               ? 'Importando Flota...'
-              : !selectedGroup
+              : (!selectedGroup && !hasFileGroups)
                 ? 'Seleccione un Grupo para Continuar'
                 : `Confirmar e Importar ${validCount + (updateExisting ? existingCount : 0)} Vehículos`}
           </Button>
