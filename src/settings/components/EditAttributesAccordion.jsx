@@ -124,7 +124,7 @@ const EditAttributesAccordion = ({ attribute, attributes, setAttributes, definit
     const convertToList = (attributes) => {
         const booleanList = [];
         const otherList = [];
-        const excludeAttributes = ['speedUnit', 'distanceUnit', 'volumeUnit', 'timezone', 'informacoes', 'planos', 'meiodepagamento','marca','veiculo','nivel','card','idasaas'];
+        const excludeAttributes = ['speedUnit', 'distanceUnit', 'volumeUnit', 'timezone', 'informacoes', 'planos', 'meiodepagamento','marca','veiculo','instalacion','notas','nivel','card','idasaas'];
         Object.keys(attributes || []).filter((key) => !excludeAttributes.includes(key)).forEach((key) => {
             const value = attributes[key];
             const type = getAttributeType(value);

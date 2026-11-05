@@ -24,7 +24,7 @@ import SelectField from '../common/components/SelectField';
 import deviceCategories from '../common/util/deviceCategories';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import useDeviceAttributes from '../common/attributes/useDeviceAttributes';
-import { useAdministrator } from '../common/util/permissions';
+import { useAdministrator, useCliente } from '../common/util/permissions';
 import SettingsMenu from './components/SettingsMenu';
 import useCommonDeviceAttributes from '../common/attributes/useCommonDeviceAttributes';
 import { useCatch, useEffectAsync } from '../reactHelper';
@@ -48,12 +48,40 @@ const DevicePage = () => {
     const t = useTranslation();
 
     const admin = useAdministrator();
+    const cliente = useCliente();
 
     const commonDeviceAttributes = useCommonDeviceAttributes(t);
     const deviceAttributes = useDeviceAttributes(t);
 
     const { id } = useParams();
     const [item, setItem] = useState();
+
+    const getInstalacion = (field) => {
+        if (!item || !item.attributes) return '';
+        if (item.attributes.instalacion && item.attributes.instalacion[field] !== undefined) {
+            return item.attributes.instalacion[field];
+        }
+        return item.attributes[field] || '';
+    };
+
+    const setInstalacion = (field, value) => {
+        const currentAttrs = (item && item.attributes) || {};
+        const currentInst = currentAttrs.instalacion || {};
+        const updatedAttrs = {
+            ...currentAttrs,
+            instalacion: {
+                ...currentInst,
+                [field]: value,
+            },
+        };
+        if (field === 'notas') {
+            updatedAttrs.notas = value;
+        }
+        setItem({
+            ...item,
+            attributes: updatedAttrs,
+        });
+    };
 
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -98,7 +126,7 @@ const DevicePage = () => {
 
     useEffect(useCatch(async () => {
         if (!id) {
-            setItem({ ...item, attributes: { veiculo: {} } });
+            setItem({ ...item, attributes: { veiculo: {}, instalacion: {} } });
         }
     }), []);
 
@@ -249,6 +277,111 @@ const DevicePage = () => {
                             </span>
                         </AccordionDetails>
                     </Accordion>
+
+                    {!cliente && (
+                        <Accordion defaultExpanded>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#0284c7' }}>
+                                    🔧 Instalación y Notas Técnicas (Ayuda de Memoria)
+                                </Typography>
+                            </AccordionSummary>
+
+                            <AccordionDetails className={'form-row'}>
+                                <span className={`form-group col-sm-3 ${classes.details}`}>
+                                    <TextField
+                                        label="Fecha de Instalación"
+                                        type="date"
+                                        InputLabelProps={{ shrink: true }}
+                                        value={getInstalacion('fechaInstalacion')}
+                                        onChange={(e) => setInstalacion('fechaInstalacion', e.target.value)}
+                                    />
+                                </span>
+
+                                <span className={`form-group col-sm-3 ${classes.details}`}>
+                                    <TextField
+                                        label="Nombre Instalador / Técnico"
+                                        placeholder="Ej: Luis Gómez - Taller Central"
+                                        value={getInstalacion('instalador')}
+                                        onChange={(e) => setInstalacion('instalador', e.target.value)}
+                                    />
+                                </span>
+
+                                <span className={`form-group col-sm-3 ${classes.details}`}>
+                                    <TextField
+                                        label="Ciudad / Lugar de Instalación"
+                                        placeholder="Ej: Lima - Domicilio / Arequipa"
+                                        value={getInstalacion('lugarInstalacion')}
+                                        onChange={(e) => setInstalacion('lugarInstalacion', e.target.value)}
+                                    />
+                                </span>
+
+                                <span className={`form-group col-sm-3 ${classes.details}`}>
+                                    <FormControl fullWidth>
+                                        <InputLabel>Relay / Corte de Motor</InputLabel>
+                                        <Select
+                                            label="Relay / Corte de Motor"
+                                            value={getInstalacion('corteMotor')}
+                                            onChange={(e) => setInstalacion('corteMotor', e.target.value)}
+                                        >
+                                            <MenuItem value=""><em>Sin especificar</em></MenuItem>
+                                            <MenuItem value="Sin Corte (Solo Rastreo)">Sin Corte (Solo Rastreo)</MenuItem>
+                                            <MenuItem value="Sí — Bomba de Combustible">⚡ Sí — Bomba de Combustible</MenuItem>
+                                            <MenuItem value="Sí — Arranque (Starter)">⚡ Sí — Arranque (Starter)</MenuItem>
+                                            <MenuItem value="Sí — Ignición / Chapa">⚡ Sí — Ignición / Chapa</MenuItem>
+                                            <MenuItem value="Sí — Obturador / Valet">⚡ Sí — Obturador / Valet</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </span>
+
+                                <span className={`form-group col-sm-4 ${classes.details}`}>
+                                    <TextField
+                                        label="Datos de Instalación / Ubicación del GPS"
+                                        placeholder="Ej: Oculto tras velocímetro, toma 12V en caja fusibles"
+                                        value={getInstalacion('datosInstalacion')}
+                                        onChange={(e) => setInstalacion('datosInstalacion', e.target.value)}
+                                    />
+                                </span>
+
+                                <span className={`form-group col-sm-4 ${classes.details}`}>
+                                    <TextField
+                                        label="Accesorios Conectados"
+                                        placeholder="Ej: Cable ACC + Botón SOS + Micrófono"
+                                        value={getInstalacion('accesorios')}
+                                        onChange={(e) => setInstalacion('accesorios', e.target.value)}
+                                    />
+                                </span>
+
+                                <span className={`form-group col-sm-2 ${classes.details}`}>
+                                    <TextField
+                                        label="Clave SMS GPS"
+                                        placeholder="Ej: 123456 / 0000"
+                                        value={getInstalacion('claveGps')}
+                                        onChange={(e) => setInstalacion('claveGps', e.target.value)}
+                                    />
+                                </span>
+
+                                <span className={`form-group col-sm-2 ${classes.details}`}>
+                                    <TextField
+                                        label="Plan / Ciclo Chip SIM"
+                                        placeholder="Ej: M2M / Recarga día 15"
+                                        value={getInstalacion('planSim')}
+                                        onChange={(e) => setInstalacion('planSim', e.target.value)}
+                                    />
+                                </span>
+
+                                <span className={`form-group col-sm-12 ${classes.details}`}>
+                                    <TextField
+                                        label="📝 Notas / Detalles / Ayuda de Memoria"
+                                        placeholder="Escribe aquí cualquier recordatorio importante del vehículo, propietario, chip, garantías o mantenimientos..."
+                                        multiline
+                                        minRows={2}
+                                        value={getInstalacion('notas') || (item.attributes && (item.attributes.notas || item.attributes.Notas)) || ''}
+                                        onChange={(e) => setInstalacion('notas', e.target.value)}
+                                    />
+                                </span>
+                            </AccordionDetails>
+                        </Accordion>
+                    )}
 
                     <Accordion>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}>

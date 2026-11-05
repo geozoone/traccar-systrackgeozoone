@@ -119,6 +119,11 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
         odometro_km: 45000,
         limite_velocidad: 90,
         chofer: 'Juan Perez',
+        fecha_instalacion: '2026-11-01',
+        instalador: 'Luis Gomez',
+        datos_instalacion: 'Detras de tablero lado piloto',
+        corte_motor: 'Sí — Bomba de Combustible',
+        notas: 'Chip M2M Entel, lleva boton SOS',
       },
       {
         placa: 'ABC-123',
@@ -129,6 +134,11 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
         odometro_km: 12500,
         limite_velocidad: 100,
         chofer: 'Carlos Rojas',
+        fecha_instalacion: '2026-11-02',
+        instalador: 'Taller Central',
+        datos_instalacion: 'Bajo consola central',
+        corte_motor: 'Sí — Arranque (Starter)',
+        notas: 'Clave SMS 123456',
       },
       {
         placa: 'MOTO-01',
@@ -139,6 +149,11 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
         odometro_km: 3000,
         limite_velocidad: 80,
         chofer: 'Luis Gomez',
+        fecha_instalacion: '2026-11-03',
+        instalador: 'Pedro Ramos',
+        datos_instalacion: 'Carenado delantero',
+        corte_motor: 'Sin Corte (Solo Rastreo)',
+        notas: 'Recarga prepago dia 15',
       },
     ];
 
@@ -190,6 +205,15 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
         const category = getVal('categoria', 'category', 'tipo', 'vehicletype') || 'car';
         const odometro = getVal('odometrokm', 'odometro', 'odometer');
         const velocidad = getVal('limitevelocidad', 'velocidad', 'speedlimit');
+        const notas = getVal('notas', 'detalles', 'observaciones', 'notes', 'comentarios', 'ayudamemoria');
+        const fechaInstalacion = getVal('fechainstalacion', 'instalacionfecha', 'installdate', 'fecha');
+        const instalador = getVal('instalador', 'nombreinstalador', 'tecnico', 'installer');
+        const datosInstalacion = getVal('datosinstalacion', 'ubicaciongps', 'ubicacioninstalacion', 'instalacion');
+        const corteMotor = getVal('cortemotor', 'relay', 'bloqueo', 'corte');
+        const lugarInstalacion = getVal('lugarinstalacion', 'ciudadinstalacion', 'taller');
+        const accesorios = getVal('accesorios', 'perifericos');
+        const claveGps = getVal('clavegps', 'passwordgps', 'clavesms');
+        const planSim = getVal('plansim', 'recargasim', 'plan');
 
         return {
           id: index + 1,
@@ -201,6 +225,15 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
           category: category.toLowerCase(),
           odometro_km: odometro,
           limite_velocidad: velocidad,
+          notas,
+          fechaInstalacion,
+          instalador,
+          datosInstalacion,
+          corteMotor,
+          lugarInstalacion,
+          accesorios,
+          claveGps,
+          planSim,
         };
       });
 
@@ -405,6 +438,7 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
                   <TableCell>Modelo</TableCell>
                   <TableCell>SIM / Teléfono</TableCell>
                   <TableCell>Categoría</TableCell>
+                  <TableCell>Notas / Instalación</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -446,6 +480,9 @@ const ImportDevicesDialog = ({ open, onClose, onImportSuccess }) => {
                       <TableCell>{dev.model || '—'}</TableCell>
                       <TableCell>{dev.phone || '—'}</TableCell>
                       <TableCell>{dev.category || 'car'}</TableCell>
+                      <TableCell sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {[dev.notas, dev.datosInstalacion, dev.instalador].filter(Boolean).join(' • ') || '—'}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
