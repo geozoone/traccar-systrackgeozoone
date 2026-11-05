@@ -399,7 +399,91 @@
     <li>La aplicación quedará instalada con tu logotipo corporativo en su menú de aplicaciones.</li>
   </ol>
 
-  <h2>7. Tabla Resumen de Operaciones Frecuentes</h2>
+  <h2>7. Guía de Permisos de Usuario: ¿Cómo configurar cada perfil?</h2>
+  <p>Al crear o editar un cliente u operador en <strong>Ajustes ➡️ Clientes y Usuarios</strong> (pestaña <em>Permisos</em>), es vital entender el impacto de cada casilla:</p>
+
+  <h3>🔒 Matriz de Seguridad Recomendada por Tipo de Cuenta</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Checkbox / Permiso</th>
+        <th>¿Qué hace si está ACTIVO?</th>
+        <th>Titular / Gerente</th>
+        <th>Operador / Centralista / Chofer</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong><code>Solo Lectura</code> (<code>readonly</code>)</strong></td>
+        <td><strong>"Modo Kiosko":</strong> Oculta casi todo el menú de Ajustes (Geocercas, Notificaciones, Preferencias, etc.). El usuario solo puede mirar el mapa.</td>
+        <td style="text-align:center;">❌ Desmarcado</td>
+        <td style="text-align:center;">❌ Desmarcado <em>(para que use Geocercas)</em> o ✅ Marcado <em>(si es pantalla TV fija)</em></td>
+      </tr>
+      <tr>
+        <td><strong><code>Dispositivo Solo Lectura</code> (<code>deviceReadonly</code>)</strong></td>
+        <td><strong>Bloqueo de Vehículos:</strong> El usuario ve los vehículos pero <strong>NO puede editarlos, borrarlos ni desvincularlos</strong>.</td>
+        <td style="text-align:center;">✅ <strong>Marcado</strong></td>
+        <td style="text-align:center;">✅ <strong>Marcado (Obligatorio)</strong></td>
+      </tr>
+      <tr>
+        <td><strong><code>Limitar Comandos</code> (<code>limitCommands</code>)</strong></td>
+        <td><strong>Antisabotaje de GPS:</strong> <strong>PROHÍBE</strong> enviar tramas libres o comandos crudos al GPS. Solo permite pulsar comandos pre-aprobados (ej. <em>Corte de Motor</em>).</td>
+        <td style="text-align:center;">✅ <strong>Marcado</strong></td>
+        <td style="text-align:center;">✅ <strong>Marcado (Obligatorio)</strong></td>
+      </tr>
+      <tr>
+        <td><strong><code>Correo Fijo</code> (<code>fixedEmail</code>)</strong></td>
+        <td><strong>Bloqueo de Identidad:</strong> Impide que el usuario cambie su correo de acceso.</td>
+        <td style="text-align:center;">✅ <strong>Marcado</strong></td>
+        <td style="text-align:center;">✅ <strong>Marcado (Obligatorio)</strong></td>
+      </tr>
+      <tr>
+        <td><strong><code>Deshabilitar Reportes</code> (<code>disableReports</code>)</strong></td>
+        <td>Oculta el módulo de reportes históricos e informes descargables.</td>
+        <td style="text-align:center;">❌ Desmarcado</td>
+        <td style="text-align:center;">✅ Opcional</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>Perfil Estándar para Clientes y Operadores:</strong> Marca siempre <code>deviceReadonly</code> (Dispositivo Solo Lectura) + <code>limitCommands</code> (Limitar Comandos) + <code>fixedEmail</code> (Correo Fijo). De esta manera, el cliente puede crear sus geocercas, programar sus notificaciones y cortar motor con seguridad, sin riesgo de borrar vehículos ni desconfigurar el GPS.
+  </div>
+
+  <h2>8. Herramientas Avanzadas: Calendarios, Atributos Calculados y Mantenimientos</h2>
+
+  <h3>📅 A. Calendarios (<code>Ajustes ➡️ Calendarios</code>)</h3>
+  <p><strong>¿Para qué sirve?</strong> Define franjas de horario laboral o días de la semana (en formato estándar iCalendar <code>.ics</code>) para activar o silenciar alertas.</p>
+  <ul>
+    <li><strong>Control de Horario Laboral / Uso Fuera de Hora:</strong> Programar una alerta que solo dispare si el móvil se enciende de noche (ej. 10:00 PM a 6:00 AM) o en fines de semana.</li>
+    <li><strong>Acceso a Geocercas en Horario Específico:</strong> Alertar si un camión ingresa al almacén fuera de la jornada de despacho.</li>
+  </ul>
+
+  <h3>⚙️ B. Atributos Calculados (<code>Ajustes ➡️ Atributos Calculados</code>)</h3>
+  <p><strong>¿Para qué sirve?</strong> Es un motor de fórmulas matemáticas y lógicas (lenguaje JEXL) que procesa la telemetría del GPS en tiempo real antes de guardarla. Permite crear <strong>sensores virtuales</strong>.</p>
+  <ul>
+    <li><strong>Ignición Virtual por Voltaje de Batería:</strong> Para equipos GPS básicos donde no se instaló el cable de ignición (ACC). Se define:
+      <ul>
+        <li><em>Atributo:</em> <code>ignition</code></li>
+        <li><em>Expresión:</em> <code>power > 13.2 ? true : false</code></li>
+        <li><em>Tipo:</em> <code>Boolean</code><br><em>(Cuando el alternador carga la batería a más de 13.2V, el sistema marca automáticamente "Motor Encendido").</em></li>
+      </ul>
+    </li>
+    <li><strong>Conversión de Sensores de Combustible:</strong> Convertir milivoltios o porcentajes (0–100%) a galones o litros reales del tanque.</li>
+    <li><strong>Invertir Sensores de Puerta:</strong> Si un sensor magnético manda <code>0</code> con puerta abierta y <code>1</code> con puerta cerrada, se invierte la lógica con una simple condición.</li>
+  </ul>
+
+  <h3>🛠️ C. Mantenimientos Preventivos (<code>Ajustes ➡️ Mantenimientos</code>)</h3>
+  <p><strong>¿Para qué sirve?</strong> Módulo de taller y mantenimiento preventivo para evitar averías mecánicas por olvido de servicio.</p>
+  <p>Soporta 3 disparadores: <strong>Por Odómetro</strong> (km recorridos), <strong>Por Horómetro</strong> (horas de motor) y <strong>Por Fecha</strong> (días o meses transcurridos).</p>
+  <p><strong>Flujo de configuración en 3 pasos:</strong></p>
+  <ol>
+    <li><strong>Crear el Mantenimiento (<code>Ajustes ➡️ Mantenimientos ➡️ +</code>):</strong> Nombre (ej. <em>Cambio de Aceite 5,000 km</em>), Tipo <code>totalDistance</code>, Período <code>5000000</code> (en metros: 5,000 km).</li>
+    <li><strong>Vincular al Vehículo (<code>Ajustes ➡️ Dispositivos ➡️ Conexiones 🔗</code>):</strong> En la pestaña <em>Mantenimientos</em>, marca la casilla del servicio creado.</li>
+    <li><strong>Activar Notificación (<code>Ajustes ➡️ Notificaciones</code>):</strong> Selecciona <em>Mantenimiento Requerido</em> (<code>maintenanceRequired</code>) por WhatsApp, Telegram o Correo.</li>
+  </ol>
+
+  <h2>9. Tabla Resumen de Operaciones Frecuentes</h2>
   <table>
     <thead>
       <tr>
@@ -422,7 +506,7 @@
       <tr>
         <td><strong>Entregar acceso al Cliente</strong></td>
         <td><code>Ajustes ➡️ Clientes</code></td>
-        <td>Crear usuario con su correo y contraseña.</td>
+        <td>Crear usuario con su correo y contraseña (según estándar <code>urevgps@</code> / <code>monitoreo@</code> / <code>&lt;usuario&gt;@</code>).</td>
       </tr>
       <tr>
         <td><strong>Habilitar vehículos al Usuario</strong></td>
@@ -433,6 +517,26 @@
         <td><strong>Organizar por departamentos</strong></td>
         <td><code>Ajustes ➡️ Grupos ➡️ Extra</code></td>
         <td>En <em>Grupo</em>, seleccionar el Grupo General como Padre.</td>
+      </tr>
+      <tr>
+        <td><strong>Seguridad de Cliente/Operador</strong></td>
+        <td><code>Ajustes ➡️ Clientes ➡️ Editar ➡️ Permisos</code></td>
+        <td>Marcar <code>deviceReadonly</code> + <code>limitCommands</code> + <code>fixedEmail</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>Control de Horario Laboral</strong></td>
+        <td><code>Ajustes ➡️ Calendarios</code></td>
+        <td>Cargar horario laboral y vincularlo a las notificaciones.</td>
+      </tr>
+      <tr>
+        <td><strong>Ignición Virtual o Sensores</strong></td>
+        <td><code>Ajustes ➡️ Atributos Calculados</code></td>
+        <td>Crear fórmula lógica (ej. <code>power > 13.2 ? true : false</code>).</td>
+      </tr>
+      <tr>
+        <td><strong>Programar Cambio de Aceite</strong></td>
+        <td><code>Ajustes ➡️ Mantenimientos</code></td>
+        <td>Crear mantenimiento de 5,000 km y enlazarlo con <strong>Conexiones (🔗)</strong>.</td>
       </tr>
       <tr>
         <td><strong>Revisar alertas por WhatsApp</strong></td>
