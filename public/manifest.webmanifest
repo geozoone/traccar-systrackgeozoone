@@ -1,7 +1,21 @@
 {
+  "id": "com.geozoone.gps",
   "short_name": "Geozoone",
-  "name": "Geozoone GPS Tracking System",
-  "description": "Geozoone GPS Tracking System",
+  "name": "Geozoone - Plataforma de Rastreo GPS",
+  "description": "Plataforma avanzada de rastreo satelital GPS en tiempo real, gestión de flotas, geocercas, telemetría y seguridad vehicular.",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0f4c81",
+  "background_color": "#ffffff",
+  "categories": [
+    "navigation",
+    "business",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "/pwa-64x64.png",
@@ -19,9 +33,5 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "start_url": "/",
-  "theme_color": "#282833",
-  "background_color": "#ffffff",
-  "display": "standalone"
+  ]
 }
