@@ -97,7 +97,7 @@ const EditItemView = ({
 	return (
 		<PageLayout menu={menu} breadcrumbs={breadcrumbs}>
 			<Toolbar className={classes.header}>
-                <PageTitle icon={<PeopleIcon sx={{ margin: 1, fontSize: 45 }} />} breadcrumbs={'Cadastro do Usuario'} />
+                <PageTitle icon={<PeopleIcon sx={{ margin: 1, fontSize: 45 }} />} breadcrumbs={'Ficha del Usuario'} />
             </Toolbar>
 			<Container className={classes.container}>
 				{item ? children : (

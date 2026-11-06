@@ -120,21 +120,20 @@ const UsersPage = () => {
         }
     }, [timestamp]);
 
-    const typeUser = (valor) => {
-        switch (valor) {
+    const typeUser = (item) => {
+        if (item?.administrator) {
+            return "Superadmin";
+        }
+        const nivel = item?.attributes?.nivel;
+        switch (nivel) {
             case 2:
                 return "Revenda";
-                break;
-
             case 3:
-                return "Clietens";
-                break;
-
+                return "Cliente";
             default:
                 return "Usuario";
-                break;
         }
-    }
+    };
 
     return (
         <PageLayout menu={<SettingsMenu />} breadcrumbs={['settingsTitle', 'settingsUsers']}>
@@ -153,7 +152,7 @@ const UsersPage = () => {
                         <TableCell>{"CPF"}</TableCell>
                         <TableCell>{t('sharedPhone')}</TableCell>
                         <TableCell>{t('userEmail')}</TableCell>                        
-                        <TableCell>{"Cadastro"}</TableCell>
+                        <TableCell>{"Tipo de Cuenta"}</TableCell>
                         <TableCell>{t('sharedDisabled')}</TableCell>
                         <TableCell>{t('userExpirationTime')}</TableCell>
                         <TableCell className={classes.columnAction} />
@@ -167,7 +166,7 @@ const UsersPage = () => {
                             <TableCell>{(item.attributes.informacoes && item.attributes.informacoes.cpf) || ''}</TableCell>
                             <TableCell>{item.phone}</TableCell>
                             <TableCell>{item.email}</TableCell>
-                            <TableCell>{typeUser(item.attributes.nivel)}</TableCell>
+                            <TableCell>{typeUser(item)}</TableCell>
                             <TableCell>{formatBoolean(item.disabled, t)}</TableCell>                            
                             <TableCell>{formatTime(item.expirationTime, 'date', hours12)}</TableCell>                            
                             <TableCell className={classes.columnAction} padding="none">

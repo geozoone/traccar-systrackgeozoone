@@ -251,11 +251,11 @@ const UserPage = () => {
                             {(currentUser.administrator == 1) && (
                             <span className={`form-group col-sm-6 ${classes.details} `}>
                                 <FormControl>
-                                    <InputLabel>{t('mapDefault')}</InputLabel>
+                                    <InputLabel>Tipo de Cuenta / Rol</InputLabel>
                                     <Select
-                                        label={t('mapDefault')}
-                                        value={item.attributes.nivel || 1}
-                                        onChange={(e) => setItem({ ...item, attributes:{ nivel: e.target.value } })}
+                                        label="Tipo de Cuenta / Rol"
+                                        value={(item.attributes && item.attributes.nivel) || 1}
+                                        onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, nivel: e.target.value } })}
                                     >
                                         <MenuItem key={2} value={2}>
                                             <Typography component="span">Revenda</Typography>
