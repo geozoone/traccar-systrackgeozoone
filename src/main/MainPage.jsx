@@ -16,6 +16,7 @@ import useFilter from './useFilter';
 import MainToolbar from './MainToolbar';
 import MainMap from './MainMap';
 import { useAttributePreference } from '../common/util/preferences';
+import VoiceAssistantFab from './VoiceAssistantFab';
 
 const useStyles = makeStyles((theme) => ({
 	root: {
@@ -162,6 +163,7 @@ const MainPage = () => {
 					desktopPadding={theme.dimensions.drawerWidthDesktop}
 				/>
 			)}
+			<VoiceAssistantFab />
 		</div>
 	);
 };
