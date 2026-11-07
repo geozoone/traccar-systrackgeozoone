@@ -14,6 +14,7 @@ import RouteIcon from '@mui/icons-material/Route';
 import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import BusinessIcon from '@mui/icons-material/Business';
+import BedtimeIcon from '@mui/icons-material/Bedtime';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from '../../common/components/LocalizationProvider';
 import { useAdministrator, useRestriction } from '../../common/util/permissions';
@@ -78,6 +79,12 @@ const ReportsMenu = () => {
                     link="/reports/dwell"
                     icon={<BusinessIcon />}
                     selected={location.pathname === '/reports/dwell'}
+                />
+                <MenuItem
+                    title="Fuera de Horario"
+                    link="/reports/afterhours"
+                    icon={<BedtimeIcon />}
+                    selected={location.pathname === '/reports/afterhours'}
                 />
                 <MenuItem
                     title={t('reportSummary')}
