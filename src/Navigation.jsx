@@ -22,6 +22,7 @@ import ReplayPage from './other/ReplayPage';
 import TripReportPage from './reports/TripReportPage';
 import StopReportPage from './reports/StopReportPage';
 import IdlingReportPage from './reports/IdlingReportPage';
+import DwellTimeReportPage from './reports/DwellTimeReportPage';
 import SummaryReportPage from './reports/SummaryReportPage';
 import ChartReportPage from './reports/ChartReportPage';
 import DriversPage from './settings/DriversPage';
@@ -197,6 +198,7 @@ const Navigation = () => {
                     <Route path="route" element={<RouteReportPage />} />
                     <Route path="stop" element={<StopReportPage />} />
                     <Route path="idling" element={<IdlingReportPage />} />
+                    <Route path="dwell" element={<DwellTimeReportPage />} />
                     <Route path="summary" element={<SummaryReportPage />} />
                     <Route path="trip" element={<TripReportPage />} />
                     <Route path="scheduled" element={<ScheduledPage />} />

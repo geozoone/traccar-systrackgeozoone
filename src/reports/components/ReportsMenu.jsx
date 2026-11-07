@@ -13,6 +13,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import RouteIcon from '@mui/icons-material/Route';
 import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
+import BusinessIcon from '@mui/icons-material/Business';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from '../../common/components/LocalizationProvider';
 import { useAdministrator, useRestriction } from '../../common/util/permissions';
@@ -71,6 +72,12 @@ const ReportsMenu = () => {
                     link="/reports/idling"
                     icon={<LocalGasStationIcon />}
                     selected={location.pathname === '/reports/idling'}
+                />
+                <MenuItem
+                    title="Permanencia (Dwell Time)"
+                    link="/reports/dwell"
+                    icon={<BusinessIcon />}
+                    selected={location.pathname === '/reports/dwell'}
                 />
                 <MenuItem
                     title={t('reportSummary')}
