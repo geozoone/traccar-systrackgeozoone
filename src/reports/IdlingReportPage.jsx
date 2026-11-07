@@ -390,3 +390,4 @@ const IdlingReportPage = () => {
 };
 
 export default IdlingReportPage;
+
