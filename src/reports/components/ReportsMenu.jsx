@@ -15,6 +15,7 @@ import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import BusinessIcon from '@mui/icons-material/Business';
 import BedtimeIcon from '@mui/icons-material/Bedtime';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from '../../common/components/LocalizationProvider';
 import { useAdministrator, useRestriction } from '../../common/util/permissions';
@@ -38,6 +39,13 @@ const ReportsMenu = () => {
     return (
         <>
             <List>
+                <MenuItem
+                    title="Dashboard Ejecutivo"
+                    link="/reports/dashboard"
+                    icon={<DashboardIcon color="primary" />}
+                    selected={location.pathname === '/reports/dashboard' || location.pathname === '/dashboard'}
+                />
+                <Divider sx={{ my: 1 }} />
                 <MenuItem
                     title={t('reportCombined')}
                     link="/reports/combined"

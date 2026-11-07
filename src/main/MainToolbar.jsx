@@ -17,6 +17,7 @@ import { useEffectAsync } from '../reactHelper';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ListIcon from '@mui/icons-material/List';
+import SpeedIcon from '@mui/icons-material/Speed';
 
 const useStyles = makeStyles((theme) => ({
     toolbar: {
@@ -139,6 +140,12 @@ const MainToolbar = ({
                     </IconButton>
                 </Tooltip>
             )}
+
+            <Tooltip title="Dashboard Ejecutivo de Flota">
+                <IconButton edge="start" onClick={() => navigate('/dashboard')} color="primary">
+                    <SpeedIcon />
+                </IconButton>
+            </Tooltip>
 
             <OutlinedInput
                 ref={inputRef}

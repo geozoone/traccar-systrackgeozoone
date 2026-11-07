@@ -24,6 +24,7 @@ import StopReportPage from './reports/StopReportPage';
 import IdlingReportPage from './reports/IdlingReportPage';
 import DwellTimeReportPage from './reports/DwellTimeReportPage';
 import AfterHoursReportPage from './reports/AfterHoursReportPage';
+import DashboardPage from './reports/DashboardPage';
 import SummaryReportPage from './reports/SummaryReportPage';
 import ChartReportPage from './reports/ChartReportPage';
 import DriversPage from './settings/DriversPage';
@@ -128,6 +129,7 @@ const Navigation = () => {
                 <Route path="event/:id" element={<EventPage />} />
                 <Route path="replay" element={<ReplayPage />} />
                 <Route path="geofences" element={<GeofencesPage />} />
+                <Route path="dashboard" element={<DashboardPage />} />
 
                 <Route path="settings">
                     <Route path="accumulators/:deviceId" element={<AccumulatorsPage />} />
@@ -193,6 +195,7 @@ const Navigation = () => {
                 </Route>
 
                 <Route path="reports">
+                    <Route path="dashboard" element={<DashboardPage />} />
                     <Route path="combined" element={<CombinedReportPage />} />
                     <Route path="chart" element={<ChartReportPage />} />
                     <Route path="event" element={<EventReportPage />} />
