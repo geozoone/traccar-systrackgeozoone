@@ -1,4 +1,5 @@
 import React, { useId, useCallback, useEffect, useState, useRef } from 'react';
+import dayjs from 'dayjs';
 import { useSelector } from 'react-redux';
 import { useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/styles';
@@ -68,11 +69,17 @@ const MapPositions = ({ positions, onClick, showStatus, selectedPosition, titleF
         break;
     }
 
-    const label = speedKmh > 0 ? `${device.name} (${speedKmh} km/h)` : device.name;
+    const deviceName = device ? device.name : 'Vehículo';
+    const title = speedKmh > 0 ? `${deviceName} (${speedKmh} km/h)` : deviceName;
+    const timeLabel = position.fixTime
+      ? dayjs(position.fixTime).format(hours12 ? 'DD/MM hh:mm A' : 'DD/MM HH:mm')
+      : '';
+    const label = timeLabel ? `${title}\n${timeLabel}` : title;
+
     return {
       id: position.id,
       deviceId: position.deviceId,
-      deviceName: device.name,
+      deviceName,
       name: label,
       speedKmh,
       isMoving,
@@ -255,7 +262,8 @@ const MapPositions = ({ positions, onClick, showStatus, selectedPosition, titleF
           'text-anchor': 'bottom',
           'text-offset': [0, -2.1 * iconScale],
           'text-font': findFonts(map),
-          'text-size': 12.5,
+          'text-size': 11.5,
+          'text-line-height': 1.25,
         },
         paint: {
           'text-color': '#ffffff',
