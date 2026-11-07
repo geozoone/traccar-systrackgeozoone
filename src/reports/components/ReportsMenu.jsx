@@ -12,6 +12,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import RouteIcon from '@mui/icons-material/Route';
 import EventRepeatIcon from '@mui/icons-material/EventRepeat';
+import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from '../../common/components/LocalizationProvider';
 import { useAdministrator, useRestriction } from '../../common/util/permissions';
@@ -64,6 +65,12 @@ const ReportsMenu = () => {
                     link="/reports/stop"
                     icon={<PauseCircleFilledIcon />}
                     selected={location.pathname === '/reports/stop'}
+                />
+                <MenuItem
+                    title="Ralentí (Idling)"
+                    link="/reports/idling"
+                    icon={<LocalGasStationIcon />}
+                    selected={location.pathname === '/reports/idling'}
                 />
                 <MenuItem
                     title={t('reportSummary')}
