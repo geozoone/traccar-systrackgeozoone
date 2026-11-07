@@ -81,6 +81,7 @@ const MapPositions = ({ positions, onClick, showStatus, selectedPosition, titleF
       deviceId: position.deviceId,
       deviceName,
       name: label,
+      timeLabel,
       speedKmh,
       isMoving,
       ignition,
@@ -414,10 +415,10 @@ const MapPositions = ({ positions, onClick, showStatus, selectedPosition, titleF
   }
 
   // Calcular posición en pantalla para que el tooltip nunca se salga de los bordes
-  const tooltipWidth = 265;
+  const tooltipWidth = 285;
   const maxLeft = typeof window !== 'undefined' ? window.innerWidth - tooltipWidth - 16 : 1000;
   const left = Math.max(12, Math.min(clusterTooltip.x + 18, maxLeft));
-  const top = Math.max(12, Math.min(clusterTooltip.y - 24, (typeof window !== 'undefined' ? window.innerHeight - 280 : 600)));
+  const top = Math.max(12, Math.min(clusterTooltip.y - 24, (typeof window !== 'undefined' ? window.innerHeight - 290 : 600)));
 
   return h(
     'div',
@@ -532,39 +533,66 @@ const MapPositions = ({ positions, onClick, showStatus, selectedPosition, titleF
             },
           },
           h(
-            'span',
+            'div',
             {
               style: {
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 7,
-                fontWeight: 600,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
                 overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                minWidth: 0,
               },
             },
-            h('span', {
-              style: {
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                backgroundColor: dotColor,
-                flexShrink: 0,
-                boxShadow: moving ? '0 0 6px #22c55e' : 'none',
+            h(
+              'span',
+              {
+                style: {
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  fontWeight: 600,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                },
               },
-            }),
-            item.deviceName || item.name || 'Vehículo',
+              h('span', {
+                style: {
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: dotColor,
+                  flexShrink: 0,
+                  boxShadow: moving ? '0 0 6px #22c55e' : 'none',
+                },
+              }),
+              item.deviceName || item.name || 'Vehículo',
+            ),
+            item.timeLabel
+              ? h(
+                'span',
+                {
+                  style: {
+                    fontSize: '0.67rem',
+                    color: '#94a3b8',
+                    paddingLeft: 15,
+                    whiteSpace: 'nowrap',
+                  },
+                },
+                item.timeLabel,
+              )
+              : null,
           ),
           h(
             'span',
             {
               style: {
-                fontSize: '0.7rem',
+                fontSize: '0.72rem',
                 color: moving ? '#4ade80' : '#94a3b8',
                 fontWeight: moving ? 700 : 500,
-                marginLeft: 8,
+                marginLeft: 10,
                 flexShrink: 0,
+                textAlign: 'right',
               },
             },
             speedText,
