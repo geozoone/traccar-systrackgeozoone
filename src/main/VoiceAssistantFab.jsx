@@ -27,7 +27,7 @@ import SendIcon from '@mui/icons-material/Send';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 
-import { devicesActions } from '../store';
+import { devicesActions, geofencesActions } from '../store';
 import { speedFromKnots } from '../common/util/converter';
 import { resolveStreetAddress } from '../map/main/MapDevicePopup';
 
@@ -38,7 +38,7 @@ const useStyles = makeStyles((theme) => ({
     bottom: 32,
     zIndex: 1200,
     [theme.breakpoints.down('md')]: {
-      bottom: 84, // Arriba del BottomMenu móvil
+      bottom: 84,
       right: 18,
     },
   },
@@ -186,6 +186,20 @@ const VoiceAssistantFab = () => {
 
   const recognitionInstanceRef = useRef(null);
 
+  // Asegurar que las geocercas se carguen en Redux si estuvieran vacías
+  useEffect(() => {
+    if (isAuthorized && Object.keys(geofencesMap).length === 0) {
+      fetch('/api/geofences')
+        .then((res) => (res.ok ? res.json() : []))
+        .then((items) => {
+          if (items && items.length > 0) {
+            dispatch(geofencesActions.update(items));
+          }
+        })
+        .catch((e) => console.warn('Error loading geofences:', e));
+    }
+  }, [isAuthorized, geofencesMap, dispatch]);
+
   // Validar soporte y contexto HTTPS
   useEffect(() => {
     if (!isAuthorized) return;
@@ -235,6 +249,9 @@ const VoiceAssistantFab = () => {
   const findMatchingDevice = (rawQuery) => {
     const q = normalizeText(rawQuery);
 
+    // Palabras reservadas que no deben considerarse placas
+    const stopWords = ['que', 'vehiculos', 'unidades', 'carros', 'moviles', 'estan', 'dentro', 'fuera', 'donde', 'esta', 'quienes', 'quien', 'como', 'flota', 'base', 'chorrillos', 'hay'];
+
     // 1. Coincidencia exacta o parcial por nombre/placa del vehículo
     for (const dev of deviceList) {
       const devName = normalizeText(dev.name);
@@ -250,7 +267,7 @@ const VoiceAssistantFab = () => {
       // Coincidencia con palabras clave de la placa (ej: "ajb", "afd", "310", "volvo")
       const parts = devName.split(/[-\s]+/);
       for (const part of parts) {
-        if (part.length >= 2 && q.includes(part)) {
+        if (part.length >= 2 && !stopWords.includes(part) && q.includes(part)) {
           return dev;
         }
       }
@@ -271,7 +288,7 @@ const VoiceAssistantFab = () => {
     }
 
     // 3. Coincidencia difusa por palabras en la consulta
-    const words = q.split(' ').filter((w) => w.length >= 2);
+    const words = q.split(' ').filter((w) => w.length >= 3 && !stopWords.includes(w));
     for (const word of words) {
       const found = deviceList.find((d) => normalizeText(d.name).includes(word));
       if (found) return found;
@@ -280,30 +297,56 @@ const VoiceAssistantFab = () => {
     return null;
   };
 
-  // Buscar coincidencia de geocerca
+  // Buscar coincidencia inteligente de geocerca (Puntaje por palabras y coincidencia exacta)
   const findMatchingGeofence = (rawQuery) => {
     const q = normalizeText(rawQuery);
+    if (!geofenceList.length) return null;
 
-    if (q.includes('base') || q.includes('cochera') || q.includes('patio') || q.includes('planta')) {
-      const baseGeo = geofenceList.find((g) => {
-        const gn = normalizeText(g.name);
-        return gn.includes('base') || gn.includes('cochera') || gn.includes('patio') || gn.includes('planta');
-      });
-      if (baseGeo) return baseGeo;
-    }
+    let bestGeo = null;
+    let maxScore = 0;
 
     for (const geo of geofenceList) {
       const geoName = normalizeText(geo.name);
-      if (geoName.length >= 3 && q.includes(geoName)) {
-        return geo;
+      if (!geoName) continue;
+
+      // 1. Coincidencia exacta de la frase entera de la geocerca (ej: "base chorrillos")
+      if (q.includes(geoName)) {
+        const score = 100 + geoName.length;
+        if (score > maxScore) {
+          maxScore = score;
+          bestGeo = geo;
+        }
+        continue;
+      }
+
+      // 2. Coincidencia de tokens/palabras individuales
+      const geoWords = geoName.split(' ').filter((w) => w.length >= 3);
+      let matchCount = 0;
+      for (const word of geoWords) {
+        if (q.includes(word)) {
+          matchCount += 10;
+        }
+      }
+
+      if (matchCount > 0 && matchCount > maxScore) {
+        maxScore = matchCount;
+        bestGeo = geo;
       }
     }
 
-    return null;
+    // Fallback genérico a base si se menciona "base" y no se encontró otra
+    if (!bestGeo && (q.includes('base') || q.includes('cochera') || q.includes('patio') || q.includes('planta'))) {
+      bestGeo = geofenceList.find((g) => {
+        const gn = normalizeText(g.name);
+        return gn.includes('base') || gn.includes('cochera') || gn.includes('patio') || gn.includes('planta');
+      });
+    }
+
+    return bestGeo;
   };
 
   // =========================================================================
-  // CEREBRO TELEMÁTICO (PASO 2): RESOLUCIÓN DE INTENCIONES CON DIRECCIÓN REAL
+  // CEREBRO TELEMÁTICO (PASO 2): RESOLUCIÓN DE INTENCIONES CON COBERTURA TOTAL
   // =========================================================================
   const processVoiceIntent = async (rawText) => {
     const text = normalizeText(rawText);
@@ -314,13 +357,20 @@ const VoiceAssistantFab = () => {
 
     try {
       // -----------------------------------------------------------------------
-      // INTENCIÓN A: "¿Quiénes están fuera de la base / geocerca?"
+      // INTENCIÓN 1: "¿Quiénes / Qué vehículos están FUERA de [geocerca]?"
       // -----------------------------------------------------------------------
-      if (text.includes('fuera de') || text.includes('quienes estan afuera') || text.includes('no estan en')) {
+      const isOutsideQuery =
+        text.includes('fuera de')
+        || text.includes('afuera de')
+        || text.includes('no estan en')
+        || text.includes('salieron de');
+
+      if (isOutsideQuery) {
         const geo = findMatchingGeofence(text) || geofenceList[0];
 
         if (!geo) {
-          const reply = 'No encontré ninguna geocerca registrada con ese nombre para verificar.';
+          const availableGeos = geofenceList.map((g) => g.name).slice(0, 4).join(', ');
+          const reply = `No encontré esa geocerca. Tus geocercas registradas son: ${availableGeos || 'ninguna'}.`;
           setResponseMessage(reply);
           speak(reply);
           return;
@@ -348,76 +398,96 @@ const VoiceAssistantFab = () => {
       }
 
       // -----------------------------------------------------------------------
-      // INTENCIÓN B: "¿Quiénes están adentro / dentro de [geocerca]?"
+      // INTENCIÓN 2: "¿Quiénes / Qué vehículos están DENTRO de [geocerca]?"
+      // Ej: "que vehiculos estan en la base chorrillos", "quienes estan en la base", "que carros hay en..."
       // -----------------------------------------------------------------------
-      if (text.includes('quienes estan en') || text.includes('quienes estan dentro') || text.includes('quien esta en')) {
-        const geo = findMatchingGeofence(text) || geofenceList[0];
+      const isListInsideQuery =
+        text.includes('que vehiculos estan en')
+        || text.includes('que vehiculos hay en')
+        || text.includes('que unidades estan en')
+        || text.includes('que unidades hay en')
+        || text.includes('que carros estan en')
+        || text.includes('que carros hay en')
+        || text.includes('cuales estan en')
+        || text.includes('quienes estan en')
+        || text.includes('quienes estan dentro')
+        || text.includes('quien esta en')
+        || text.includes('que moviles estan en');
 
-        if (geo) {
-          const insideDevices = deviceList.filter((dev) => {
-            const pos = positionsMap[dev.id];
-            const gIds = pos?.geofenceIds || [];
-            return gIds.includes(geo.id);
-          });
+      if (isListInsideQuery) {
+        const geo = findMatchingGeofence(text);
 
-          if (insideDevices.length === 0) {
-            const reply = `No hay ningún vehículo dentro de ${geo.name} en este momento.`;
-            setResponseMessage(reply);
-            speak(reply);
-          } else {
-            const names = insideDevices.slice(0, 4).map((d) => d.name).join(', ');
-            const remaining = insideDevices.length > 4 ? ` y ${insideDevices.length - 4} más` : '';
-            const reply = `Dentro de ${geo.name} se encuentran ${insideDevices.length} vehículos: ${names}${remaining}.`;
-            setResponseMessage(reply);
-            speak(reply);
-          }
+        if (!geo) {
+          const availableGeos = geofenceList.map((g) => g.name).slice(0, 4).join(', ');
+          const reply = `No identifiqué la geocerca. Tus geocercas disponibles son: ${availableGeos || 'ninguna'}.`;
+          setResponseMessage(reply);
+          speak(reply);
           return;
         }
+
+        const insideDevices = deviceList.filter((dev) => {
+          const pos = positionsMap[dev.id];
+          const gIds = pos?.geofenceIds || [];
+          return gIds.includes(geo.id);
+        });
+
+        if (insideDevices.length === 0) {
+          const reply = `No hay ningún vehículo dentro de ${geo.name} en este momento.`;
+          setResponseMessage(reply);
+          speak(reply);
+        } else {
+          const names = insideDevices.slice(0, 5).map((d) => d.name).join(', ');
+          const remaining = insideDevices.length > 5 ? ` y ${insideDevices.length - 5} más` : '';
+          const reply = `Dentro de ${geo.name} se encuentran ${insideDevices.length} vehículos: ${names}${remaining}.`;
+          setResponseMessage(reply);
+          speak(reply);
+        }
+        return;
       }
 
       // -----------------------------------------------------------------------
-      // INTENCIÓN C: "¿Está [Vehículo] en [Geocerca]?" o "¿Ya llegó [Vehículo] a [Geocerca]?"
+      // INTENCIÓN 3: "¿Está [Vehículo específico] en [Geocerca]?"
+      // Ej: "¿Está el AJB en la base chorrillos?", "¿Ya llegó el AFD a Brenntag?"
       // -----------------------------------------------------------------------
       const targetGeo = findMatchingGeofence(text);
       const targetDev = findMatchingDevice(text);
 
-      if (targetGeo && (text.includes('esta') || text.includes('llego') || text.includes('se encuentra'))) {
-        if (targetDev) {
-          const pos = positionsMap[targetDev.id];
-          const isInside = pos?.geofenceIds?.includes(targetGeo.id);
+      if (targetGeo && targetDev && (text.includes('esta') || text.includes('llego') || text.includes('se encuentra'))) {
+        const pos = positionsMap[targetDev.id];
+        const isInside = pos?.geofenceIds?.includes(targetGeo.id);
 
-          setTargetDevice(targetDev);
-          dispatch(devicesActions.selectId(targetDev.id));
+        setTargetDevice(targetDev);
+        dispatch(devicesActions.selectId(targetDev.id));
 
-          const rawTime = pos?.fixTime || pos?.deviceTime || targetDev.lastUpdate;
-          const timeFormatted = formatSpokenDateTime(rawTime);
-          const timeSuffix = timeFormatted ? `, reportado ${timeFormatted}` : '';
+        const rawTime = pos?.fixTime || pos?.deviceTime || targetDev.lastUpdate;
+        const timeFormatted = formatSpokenDateTime(rawTime);
+        const timeSuffix = timeFormatted ? `, reportado ${timeFormatted}` : '';
 
-          if (isInside) {
-            const speedKmh = Math.round(speedFromKnots(pos?.speed || 0, 'kmh'));
-            const ignition = Boolean(pos?.attributes?.ignition);
-            const stateStr = speedKmh > 3 ? `en marcha a ${speedKmh} km por hora` : ignition ? 'en ralentí con motor encendido' : 'con motor apagado';
+        if (isInside) {
+          const speedKmh = Math.round(speedFromKnots(pos?.speed || 0, 'kmh'));
+          const ignition = Boolean(pos?.attributes?.ignition);
+          const stateStr = speedKmh > 3 ? `en marcha a ${speedKmh} km por hora` : ignition ? 'en ralentí con motor encendido' : 'con motor apagado';
 
-            const reply = `Sí, el móvil ${targetDev.name} está dentro de ${targetGeo.name}, ${stateStr}${timeSuffix}.`;
-            setResponseMessage(reply);
-            speak(reply);
-          } else {
-            let address = pos?.address;
-            if (!address && pos?.latitude && pos?.longitude) {
-              address = await resolveStreetAddress(pos.latitude, pos.longitude);
-            }
-            const speedKmh = Math.round(speedFromKnots(pos?.speed || 0, 'kmh'));
-            const locationStr = address ? `en ${address}` : 'en ruta';
-            const reply = `No, el móvil ${targetDev.name} no está en ${targetGeo.name}. Actualmente se encuentra ${locationStr} a ${speedKmh} km por hora${timeSuffix}.`;
-            setResponseMessage(reply);
-            speak(reply);
+          const reply = `Sí, el móvil ${targetDev.name} está dentro de ${targetGeo.name}, ${stateStr}${timeSuffix}.`;
+          setResponseMessage(reply);
+          speak(reply);
+        } else {
+          let address = pos?.address;
+          if (!address && pos?.latitude && pos?.longitude) {
+            address = await resolveStreetAddress(pos.latitude, pos.longitude);
           }
-          return;
+          const speedKmh = Math.round(speedFromKnots(pos?.speed || 0, 'kmh'));
+          const locationStr = address ? `en ${address}` : 'en ruta';
+          const reply = `No, el móvil ${targetDev.name} no está en ${targetGeo.name}. Actualmente se encuentra ${locationStr} a ${speedKmh} km por hora${timeSuffix}.`;
+          setResponseMessage(reply);
+          speak(reply);
         }
+        return;
       }
 
       // -----------------------------------------------------------------------
-      // INTENCIÓN D: "¿Dónde está [Vehículo / Conductor]?" / Ubicar vehículo
+      // INTENCIÓN 4: "¿Dónde está [Vehículo / Conductor]?" / Ubicar vehículo
+      // Ej: "¿Dónde está el AJB?", "¿Dónde está Juan?"
       // -----------------------------------------------------------------------
       if (targetDev) {
         setTargetDevice(targetDev);
@@ -437,7 +507,7 @@ const VoiceAssistantFab = () => {
         const ignition = Boolean(pos.attributes?.ignition);
         const cardinal = getCardinalDirection(pos.course);
 
-        // 1. Resolver dirección de calle real (geocodificación inversa si no viene precargada)
+        // 1. Resolver dirección de calle real (geocodificación inversa)
         let resolvedAddress = pos.address;
         if ((!resolvedAddress || resolvedAddress.trim().length === 0) && pos.latitude && pos.longitude) {
           resolvedAddress = await resolveStreetAddress(pos.latitude, pos.longitude);
@@ -487,7 +557,7 @@ const VoiceAssistantFab = () => {
       }
 
       // -----------------------------------------------------------------------
-      // INTENCIÓN E: Resumen General de la Flota ("¿Cómo está la flota?")
+      // INTENCIÓN 5: Resumen General de la Flota ("¿Cómo está la flota?")
       // -----------------------------------------------------------------------
       if (text.includes('como esta la flota') || text.includes('estado de la flota') || text.includes('cuantos vehiculos') || text.includes('cuantos estan')) {
         const total = deviceList.length;
@@ -516,12 +586,12 @@ const VoiceAssistantFab = () => {
       }
 
       // -----------------------------------------------------------------------
-      // FALLBACK INTELIGENTE (Si no se entendió la consulta exacta)
+      // FALLBACK INTELIGENTE
       // -----------------------------------------------------------------------
       const sampleDevice = deviceList[0]?.name || 'AJB';
-      const sampleGeofence = geofenceList[0]?.name || 'Base';
+      const sampleGeofence = geofenceList[0]?.name || 'Base Chorrillos';
 
-      const reply = `Te escuché, pero no identifiqué una placa o geocerca válida. Puedes preguntarme por ejemplo: "¿Dónde está el ${sampleDevice}?", "¿Está el ${sampleDevice} en la ${sampleGeofence}?" o "¿Quiénes están fuera de la ${sampleGeofence}?".`;
+      const reply = `Te escuché, pero no identifiqué claramente la consulta. Puedes preguntarme: "¿Qué vehículos están en la ${sampleGeofence}?", "¿Dónde está el ${sampleDevice}?" o "¿Quiénes están fuera de la ${sampleGeofence}?".`;
       setResponseMessage(reply);
       speak(reply);
     } finally {
@@ -758,7 +828,7 @@ const VoiceAssistantFab = () => {
             <TextField
               size="small"
               fullWidth
-              placeholder='Ej: "¿Dónde está el AJB?", "¿Quiénes están fuera de base?"'
+              placeholder='Ej: "¿Qué vehículos están en la Base Chorrillos?", "¿Dónde está el AJB?"'
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
               InputProps={{
