@@ -26,6 +26,7 @@ import ReplayIcon from '@mui/icons-material/Replay';
 import SendIcon from '@mui/icons-material/Send';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 
 import { devicesActions, geofencesActions } from '../store';
 import { speedFromKnots } from '../common/util/converter';
@@ -63,6 +64,11 @@ const useStyles = makeStyles((theme) => ({
     color: '#ffffff',
     boxShadow: '0 8px 24px rgba(16, 185, 129, 0.45)',
   },
+  watchingFab: {
+    backgroundColor: '#f59e0b !important',
+    color: '#ffffff',
+    boxShadow: '0 8px 24px rgba(245, 158, 11, 0.45)',
+  },
   '@keyframes pulseRing': {
     '0%': {
       boxShadow: '0 0 0 0 rgba(239, 68, 68, 0.7)',
@@ -81,7 +87,7 @@ const useStyles = makeStyles((theme) => ({
     position: 'fixed',
     right: 24,
     bottom: 104,
-    width: 420,
+    width: 430,
     maxWidth: 'calc(100vw - 48px)',
     borderRadius: 16,
     padding: theme.spacing(2.2),
@@ -153,7 +159,36 @@ const getCardinalDirection = (course) => {
   return directions[index];
 };
 
-// Algoritmo matemático para comprobar si un punto (lat, lon) está dentro de una geocerca (círculo o polígono)
+// Tocar timbre/chime sonoro nativo con Web Audio API (0 costo, 100% offline)
+const playNotificationChime = () => {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    // Acorde de atención: D5 (587 Hz) -> A5 (880 Hz)
+    osc.frequency.setValueAtTime(587.33, now);
+    osc.frequency.setValueAtTime(880, now + 0.12);
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.65);
+  } catch (e) {
+    console.warn('Audio chime error:', e);
+  }
+};
+
+// Algoritmo matemático para comprobar si un punto (lat, lon) está dentro de una geocerca
 const isPositionInGeofence = (pos, geo) => {
   if (!pos || !geo) return false;
 
@@ -177,7 +212,6 @@ const isPositionInGeofence = (pos, geo) => {
         const cLon = Number(raw[1]);
         const radius = Number(raw[2]);
         if (!isNaN(cLat) && !isNaN(cLon) && !isNaN(radius)) {
-          // Distancia Haversine en metros
           const R = 6371000;
           const dLat = ((cLat - lat) * Math.PI) / 180;
           const dLon = ((cLon - lon) * Math.PI) / 180;
@@ -201,7 +235,6 @@ const isPositionInGeofence = (pos, geo) => {
       const vs = pairs.map((p) => [Number(p[0]), Number(p[1])]).filter((p) => !isNaN(p[0]) && !isNaN(p[1]));
 
       if (vs.length >= 3) {
-        // Algoritmo Ray-Casting
         const x = lon;
         const y = lat;
         let inside = false;
@@ -253,6 +286,9 @@ const VoiceAssistantFab = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [textInput, setTextInput] = useState('');
+
+  // 2. FASE 5.2: Estado de Observadores Proactivos ("Avísame cuando...")
+  const [watchers, setWatchers] = useState([]);
 
   const recognitionInstanceRef = useRef(null);
 
@@ -315,12 +351,79 @@ const VoiceAssistantFab = () => {
   const geofenceList = useMemo(() => Object.values(geofencesMap), [geofencesMap]);
   const driverList = useMemo(() => Object.values(driversMap), [driversMap]);
 
+  // Observadores activos no disparados
+  const activeWatchers = useMemo(() => watchers.filter((w) => !w.triggered), [watchers]);
+
+  // =========================================================================
+  // FASE 5.2: MOTOR DE VIGILANCIA EN TIEMPO REAL (WEBSOCKET EVALUATOR)
+  // =========================================================================
+  useEffect(() => {
+    if (!watchers.length) return;
+
+    watchers.forEach((watcher) => {
+      if (watcher.triggered) return;
+
+      const pos = positionsMap[watcher.deviceId];
+      if (!pos) return;
+
+      let shouldTrigger = false;
+      let alertMessage = '';
+
+      if (watcher.type === 'ARRIVAL') {
+        const geo = geofencesMap[watcher.geofenceId];
+        if (geo && isPositionInGeofence(pos, geo)) {
+          shouldTrigger = true;
+          alertMessage = `¡Atención! El móvil ${watcher.deviceName} acaba de ingresar a ${watcher.geofenceName}.`;
+        }
+      } else if (watcher.type === 'DEPARTURE') {
+        const geo = geofencesMap[watcher.geofenceId];
+        if (geo && !isPositionInGeofence(pos, geo)) {
+          shouldTrigger = true;
+          alertMessage = `¡Alerta! El móvil ${watcher.deviceName} acaba de salir de ${watcher.geofenceName}.`;
+        }
+      } else if (watcher.type === 'MOTION') {
+        const speedKmh = Math.round(speedFromKnots(pos.speed || 0, 'kmh'));
+        const ignition = Boolean(pos.attributes?.ignition);
+        if (speedKmh >= 3 || ignition) {
+          shouldTrigger = true;
+          alertMessage = `¡Atención! El móvil ${watcher.deviceName} ha encendido el motor y se puso en movimiento a ${speedKmh} km por hora.`;
+        }
+      }
+
+      if (shouldTrigger) {
+        // 1. Marcar observador como disparado
+        setWatchers((prev) => prev.map((w) => (w.id === watcher.id ? { ...w, triggered: true } : w)));
+
+        // 2. Tocar chime sonoro
+        playNotificationChime();
+
+        // 3. Desplegar diálogo y cantar alerta por altavoz
+        setResponseMessage(alertMessage);
+        setTargetDevice(devicesMap[watcher.deviceId] || null);
+        setDialogOpen(true);
+        speak(alertMessage);
+
+        // 4. Centrar automáticamente el vehículo en el mapa
+        dispatch(devicesActions.selectId(watcher.deviceId));
+      }
+    });
+  }, [positionsMap, watchers, geofencesMap, devicesMap, dispatch]);
+
+  // Cancelar un observador activo
+  const handleRemoveWatcher = (id) => {
+    setWatchers((prev) => prev.filter((w) => w.id !== id));
+  };
+
   // Buscar coincidencia de vehículo o conductor
   const findMatchingDevice = (rawQuery) => {
     const q = normalizeText(rawQuery);
 
-    // Palabras reservadas que no deben considerarse placas
-    const stopWords = ['que', 'vehiculos', 'vehiculo', 'unidades', 'unidad', 'carros', 'carro', 'moviles', 'movil', 'estan', 'dentro', 'fuera', 'donde', 'esta', 'quienes', 'quien', 'como', 'flota', 'base', 'chorrillos', 'hay', 'en', 'la', 'el'];
+    const stopWords = [
+      'que', 'vehiculos', 'vehiculo', 'unidades', 'unidad', 'carros', 'carro', 'moviles', 'movil',
+      'estan', 'dentro', 'fuera', 'donde', 'esta', 'quienes', 'quien', 'como', 'flota', 'base',
+      'chorrillos', 'hay', 'en', 'la', 'el', 'avisame', 'cuando', 'llegue', 'salga', 'se', 'mueva',
+      'arranque', 'si', 'notificame', 'alerta',
+    ];
 
     // 1. Coincidencia exacta o parcial por nombre/placa del vehículo
     for (const dev of deviceList) {
@@ -334,7 +437,6 @@ const VoiceAssistantFab = () => {
       if (devPlate.length >= 3 && queryNoSpaces.includes(devPlate)) {
         return dev;
       }
-      // Coincidencia con palabras clave de la placa (ej: "ajb", "afd", "310", "volvo")
       const parts = devName.split(/[-\s]+/);
       for (const part of parts) {
         if (part.length >= 2 && !stopWords.includes(part) && q.includes(part)) {
@@ -379,7 +481,6 @@ const VoiceAssistantFab = () => {
       const geoName = normalizeText(geo.name);
       if (!geoName) continue;
 
-      // 1. Coincidencia exacta de la frase entera de la geocerca (ej: "base chorrillos")
       if (q.includes(geoName)) {
         const score = 100 + geoName.length;
         if (score > maxScore) {
@@ -389,13 +490,11 @@ const VoiceAssistantFab = () => {
         continue;
       }
 
-      // 2. Coincidencia si el nombre de la geocerca contiene las palabras clave de la consulta
-      // Ej: consulta tiene "chorrillos" y geocerca se llama "Base Chorrillos"
       const geoWords = geoName.split(' ').filter((w) => w.length >= 3);
       let matchCount = 0;
       for (const word of geoWords) {
         if (q.includes(word)) {
-          matchCount += (word === 'base' ? 5 : 20); // Palabras distintivas como "chorrillos" pesan mucho más que "base"
+          matchCount += (word === 'base' ? 5 : 20);
         }
       }
 
@@ -405,7 +504,6 @@ const VoiceAssistantFab = () => {
       }
     }
 
-    // Fallback genérico a base si se menciona "base" y no se encontró otra
     if (!bestGeo && (q.includes('base') || q.includes('cochera') || q.includes('patio') || q.includes('planta'))) {
       bestGeo = geofenceList.find((g) => {
         const gn = normalizeText(g.name);
@@ -417,7 +515,7 @@ const VoiceAssistantFab = () => {
   };
 
   // =========================================================================
-  // CEREBRO TELEMÁTICO (PASO 2): MOTOR DETERMINISTA Y ROBUSTO
+  // CEREBRO TELEMÁTICO (PASO 2 + FASE 5.2): MOTOR DETERMINISTA Y PROACTIVO
   // =========================================================================
   const processVoiceIntent = async (rawText) => {
     const text = normalizeText(rawText);
@@ -429,6 +527,103 @@ const VoiceAssistantFab = () => {
     try {
       const targetGeo = findMatchingGeofence(text);
       const targetDev = findMatchingDevice(text);
+
+      // =====================================================================
+      // FASE 5.2: DISPARADORES PROACTIVOS ("Avísame cuando...")
+      // =====================================================================
+      const isWatchRequest =
+        text.includes('avisame')
+        || text.includes('notificame')
+        || text.includes('alertame')
+        || text.includes('dime cuando')
+        || text.includes('avisame si')
+        || text.includes('avisame cuando');
+
+      if (isWatchRequest) {
+        // 1. Caso: "Avísame cuando [móvil] llegue / entre a [geocerca]"
+        const isArrival = text.includes('llegue') || text.includes('entre') || text.includes('ingrese') || text.includes('llegar');
+        // 2. Caso: "Avísame cuando [móvil] salga / abandone [geocerca]"
+        const isDeparture = text.includes('salga') || text.includes('abandone') || text.includes('se vaya') || text.includes('salida');
+        // 3. Caso: "Avísame si [móvil] se mueve / arranca / enciende"
+        const isMotion = text.includes('mueva') || text.includes('arranque') || text.includes('encienda') || text.includes('avance');
+
+        if (targetDev && (isArrival || isDeparture) && targetGeo) {
+          const pos = positionsMap[targetDev.id];
+          const isCurrentlyInside = isPositionInGeofence(pos, targetGeo);
+
+          if (isArrival && isCurrentlyInside) {
+            const reply = `El móvil ${targetDev.name} ya se encuentra actualmente dentro de ${targetGeo.name}.`;
+            setResponseMessage(reply);
+            speak(reply);
+            return;
+          }
+
+          if (isDeparture && !isCurrentlyInside) {
+            const reply = `El móvil ${targetDev.name} ya está actualmente fuera de ${targetGeo.name}.`;
+            setResponseMessage(reply);
+            speak(reply);
+            return;
+          }
+
+          const watcherType = isArrival ? 'ARRIVAL' : 'DEPARTURE';
+          const newWatcher = {
+            id: `watch_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+            type: watcherType,
+            deviceId: targetDev.id,
+            deviceName: targetDev.name,
+            geofenceId: targetGeo.id,
+            geofenceName: targetGeo.name,
+            createdAt: Date.now(),
+            triggered: false,
+          };
+
+          setWatchers((prev) => [...prev, newWatcher]);
+          setTargetDevice(targetDev);
+
+          const reply = isArrival
+            ? `Entendido. He programado la alerta. Te avisaré tan pronto el móvil ${targetDev.name} ingrese a ${targetGeo.name}.`
+            : `Listo. He programado la alerta. Te avisaré inmediatamente cuando el móvil ${targetDev.name} salga de ${targetGeo.name}.`;
+
+          setResponseMessage(reply);
+          speak(reply);
+          return;
+        }
+
+        if (targetDev && isMotion) {
+          const newWatcher = {
+            id: `watch_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+            type: 'MOTION',
+            deviceId: targetDev.id,
+            deviceName: targetDev.name,
+            createdAt: Date.now(),
+            triggered: false,
+          };
+
+          setWatchers((prev) => [...prev, newWatcher]);
+          setTargetDevice(targetDev);
+
+          const reply = `Perfecto. Vigilaré el móvil ${targetDev.name}. Te avisaré en cuanto encienda el motor o inicie movimiento.`;
+          setResponseMessage(reply);
+          speak(reply);
+          return;
+        }
+
+        if (!targetDev) {
+          const sampleDev = deviceList[0]?.name || 'AJB';
+          const reply = `¿De qué vehículo deseas que te avise? Puedes decir por ejemplo: "Avísame cuando el ${sampleDev} llegue a la Base Chorrillos".`;
+          setResponseMessage(reply);
+          speak(reply);
+          return;
+        }
+
+        if (!targetGeo && !isMotion) {
+          const sampleGeo = geofenceList[0]?.name || 'Base Chorrillos';
+          const reply = `¿De qué geocerca deseas que te avise? Puedes decir: "Avísame cuando el ${targetDev.name} llegue a la ${sampleGeo}".`;
+          setResponseMessage(reply);
+          speak(reply);
+          return;
+        }
+      }
 
       // =====================================================================
       // CASO A: SE MENCIONA UNA GEOCERCA (Ej: "Base Chorrillos")
@@ -491,7 +686,6 @@ const VoiceAssistantFab = () => {
         }
 
         // A.3: ¿Quiénes / Qué vehículos están DENTRO de la geocerca?
-        // (Cualquier consulta sobre la geocerca que no sea 'fuera' ni de un auto específico)
         const insideDevices = deviceList.filter((dev) => {
           const pos = positionsMap[dev.id];
           return isPositionInGeofence(pos, targetGeo);
@@ -532,20 +726,17 @@ const VoiceAssistantFab = () => {
         const ignition = Boolean(pos.attributes?.ignition);
         const cardinal = getCardinalDirection(pos.course);
 
-        // 1. Resolver dirección de calle real (geocodificación inversa)
         let resolvedAddress = pos.address;
         if ((!resolvedAddress || resolvedAddress.trim().length === 0) && pos.latitude && pos.longitude) {
           resolvedAddress = await resolveStreetAddress(pos.latitude, pos.longitude);
         }
 
-        // 2. Geocercas actuales (usando nuestro evaluador espacial)
         let geoInfo = '';
         const currentGeo = geofenceList.find((g) => isPositionInGeofence(pos, g));
         if (currentGeo) {
           geoInfo = `dentro de ${currentGeo.name}`;
         }
 
-        // 3. Armar ubicación
         let locationStr = '';
         if (resolvedAddress && geoInfo) {
           locationStr = `en ${resolvedAddress}, ${geoInfo}`;
@@ -559,12 +750,10 @@ const VoiceAssistantFab = () => {
           locationStr = 'en ruta';
         }
 
-        // 4. Armar fecha y hora reportada
         const rawTimestamp = pos.fixTime || pos.deviceTime || targetDev.lastUpdate;
         const timeFormatted = formatSpokenDateTime(rawTimestamp);
         const timeStr = timeFormatted ? `, reportado ${timeFormatted}` : '';
 
-        // 5. Frase final hablada
         let reply = '';
         if (speedKmh >= 3) {
           reply = `El móvil ${targetDev.name} está en movimiento a ${speedKmh} km por hora ${locationStr} ${cardinal}${timeStr}.`;
@@ -609,12 +798,12 @@ const VoiceAssistantFab = () => {
       }
 
       // =====================================================================
-      // CASO D: FALLBACK INTELIGENTE (Lista las geocercas y placas disponibles)
+      // CASO D: FALLBACK INTELIGENTE
       // =====================================================================
       const sampleDevice = deviceList[0]?.name || 'AJB';
       const availableGeos = geofenceList.map((g) => g.name).slice(0, 3).join(', ') || 'Base Chorrillos';
 
-      const reply = `Te escuché, pero no identifiqué la placa o geocerca. Puedes preguntarme por ejemplo: "¿Qué vehículos están en la ${availableGeos}?" o "¿Dónde está el ${sampleDevice}?".`;
+      const reply = `Te escuché, pero no identifiqué la consulta. Puedes pedirme: "Avísame cuando el ${sampleDevice} llegue a la ${availableGeos}", "¿Qué vehículos están en la ${availableGeos}?" o "¿Dónde está el ${sampleDevice}?".`;
       setResponseMessage(reply);
       speak(reply);
     } finally {
@@ -745,7 +934,7 @@ const VoiceAssistantFab = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <SmartToyIcon color="primary" fontSize="small" />
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                GeoZoone Voice (Telemetría en Vivo)
+                GeoZoone Voice (Telemetría y Alertas)
               </Typography>
             </Box>
             <IconButton size="small" onClick={() => { stopListening(); setDialogOpen(false); }}>
@@ -760,14 +949,23 @@ const VoiceAssistantFab = () => {
             </Alert>
           )}
 
-          {/* Estado del Micrófono */}
-          <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Estado del Micrófono y Observadores */}
+          <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
             <Chip
               size="small"
-              label={isListening ? '🎙️ Escuchando... ¡Habla ahora!' : isProcessing ? '⏳ Consultando telemetría...' : isSpeaking ? '🔊 Respondiendo...' : 'Listo para consultar'}
+              label={isListening ? '🎙️ Escuchando... ¡Habla ahora!' : isProcessing ? '⏳ Procesando...' : isSpeaking ? '🔊 Respondiendo...' : 'Listo'}
               color={isListening ? 'error' : isProcessing ? 'warning' : isSpeaking ? 'success' : 'primary'}
               sx={{ fontWeight: 600, fontSize: '0.72rem' }}
             />
+            {activeWatchers.length > 0 && (
+              <Chip
+                size="small"
+                icon={<NotificationsActiveIcon style={{ fontSize: '0.9rem' }} />}
+                label={`${activeWatchers.length} alerta${activeWatchers.length > 1 ? 's' : ''} activa${activeWatchers.length > 1 ? 's' : ''}`}
+                color="warning"
+                sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+              />
+            )}
           </Box>
 
           {(isListening || isProcessing) && (
@@ -781,11 +979,33 @@ const VoiceAssistantFab = () => {
             </Alert>
           )}
 
+          {/* FASE 5.2: Panel de Observadores Activos */}
+          {activeWatchers.length > 0 && (
+            <Box sx={{ mb: 1.5, p: 1.2, backgroundColor: '#fefce8', borderRadius: 2, border: '1px solid #fef08a' }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: '#854d0e', display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.8 }}>
+                <NotificationsActiveIcon fontSize="inherit" /> VIGILANCIA EN VIVO ACTIVA ({activeWatchers.length}):
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8 }}>
+                {activeWatchers.map((w) => (
+                  <Chip
+                    key={w.id}
+                    size="small"
+                    label={`${w.deviceName} ➔ ${w.type === 'ARRIVAL' ? 'Llegada a ' : w.type === 'DEPARTURE' ? 'Salida de ' : 'Movimiento '}${w.geofenceName || ''}`}
+                    onDelete={() => handleRemoveWatcher(w.id)}
+                    color="warning"
+                    variant="outlined"
+                    sx={{ fontSize: '0.72rem', fontWeight: 600, backgroundColor: '#ffffff' }}
+                  />
+                ))}
+              </Box>
+            </Box>
+          )}
+
           {/* Lo que dijo el usuario */}
           {transcript && (
             <Box sx={{ mb: 1.5, p: 1.2, backgroundColor: '#f1f5f9', borderRadius: 2 }}>
               <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, display: 'block' }}>
-                PREGUNTA:
+                PREGUNTA / COMANDO:
               </Typography>
               <Typography variant="body2" sx={{ color: '#1e293b', fontWeight: 500, fontStyle: 'italic' }}>
                 "{transcript}"
@@ -797,7 +1017,7 @@ const VoiceAssistantFab = () => {
           {responseMessage && (
             <Box sx={{ p: 1.2, backgroundColor: '#eff6ff', borderRadius: 2, borderLeft: '4px solid #3b82f6', mb: 1.5 }}>
               <Typography variant="caption" sx={{ color: '#1d4ed8', fontWeight: 600, display: 'block' }}>
-                RESPUESTA TELEMÁTICA:
+                RESPUESTA:
               </Typography>
               <Typography variant="body2" sx={{ color: '#1e3a8a', mt: 0.3, fontWeight: 500 }}>
                 {responseMessage}
@@ -851,7 +1071,7 @@ const VoiceAssistantFab = () => {
             <TextField
               size="small"
               fullWidth
-              placeholder='Ej: "¿Qué vehículos están en la Base Chorrillos?", "¿Dónde está el AJB?"'
+              placeholder='Ej: "Avísame cuando el AJB llegue a la Base Chorrillos"'
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
               InputProps={{
@@ -871,9 +1091,9 @@ const VoiceAssistantFab = () => {
 
       {/* Botón Flotante Principal de Micrófono */}
       <div className={classes.fabContainer}>
-        <Tooltip title={isListening ? 'Escuchando tu voz...' : 'GeoZoone Voice (Consultas de Flota)'} placement="left">
+        <Tooltip title={isListening ? 'Escuchando tu voz...' : activeWatchers.length > 0 ? `Vigilando ${activeWatchers.length} alertas en vivo` : 'GeoZoone Voice (Consultas y Alertas)'} placement="left">
           <Fab
-            className={`${classes.pulseFab} ${isListening ? classes.listeningFab : ''} ${isSpeaking ? classes.speakingFab : ''}`}
+            className={`${classes.pulseFab} ${isListening ? classes.listeningFab : ''} ${isSpeaking ? classes.speakingFab : ''} ${activeWatchers.length > 0 && !isListening && !isSpeaking ? classes.watchingFab : ''}`}
             onClick={handleToggleListening}
             aria-label="voice-assistant"
           >
@@ -881,6 +1101,8 @@ const VoiceAssistantFab = () => {
               <GraphicEqIcon fontSize="medium" />
             ) : isSpeaking ? (
               <VolumeUpIcon fontSize="medium" />
+            ) : activeWatchers.length > 0 ? (
+              <NotificationsActiveIcon fontSize="medium" />
             ) : (
               <MicIcon fontSize="medium" />
             )}
