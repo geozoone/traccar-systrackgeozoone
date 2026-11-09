@@ -17,6 +17,7 @@ import MainToolbar from './MainToolbar';
 import MainMap from './MainMap';
 import { useAttributePreference } from '../common/util/preferences';
 import VoiceAssistantFab from './VoiceAssistantFab';
+import VehicleWatcherModal from './VehicleWatcherModal';
 
 const useStyles = makeStyles((theme) => ({
 	root: {
@@ -164,6 +165,7 @@ const MainPage = () => {
 				/>
 			)}
 			<VoiceAssistantFab />
+			<VehicleWatcherModal />
 		</div>
 	);
 };

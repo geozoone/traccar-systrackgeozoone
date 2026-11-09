@@ -102,159 +102,17 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-// Normalizar texto eliminando tildes y caracteres especiales
-const normalizeText = (text) => {
-  if (!text) return '';
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
-
-// Formato de fecha y hora natural para voz hablada
-const formatSpokenDateTime = (timestamp) => {
-  if (!timestamp) return '';
-  try {
-    const date = dayjs(timestamp);
-    const now = dayjs();
-    const diffMinutes = now.diff(date, 'minute');
-    const diffHours = now.diff(date, 'hour');
-    const timeFormatted = date.format('h:mm A');
-
-    if (diffMinutes < 2) {
-      return `hace un momento a las ${timeFormatted}`;
-    }
-    if (diffMinutes < 60) {
-      return `hace ${diffMinutes} minutos, a las ${timeFormatted}`;
-    }
-    if (now.isSame(date, 'day')) {
-      return `hoy a las ${timeFormatted} (hace ${diffHours} horas)`;
-    }
-    if (now.subtract(1, 'day').isSame(date, 'day')) {
-      return `ayer a las ${timeFormatted}`;
-    }
-    return `el ${date.format('D [de] MMMM [a las] h:mm A')}`;
-  } catch (e) {
-    return '';
-  }
-};
-
-// Convertir rumbo en grados a dirección cardinal en español
-const getCardinalDirection = (course) => {
-  if (course == null) return '';
-  const directions = [
-    'hacia el norte',
-    'hacia el noreste',
-    'hacia el este',
-    'hacia el sureste',
-    'hacia el sur',
-    'hacia el suroeste',
-    'hacia el oeste',
-    'hacia el noroeste',
-  ];
-  const index = Math.round(course / 45) % 8;
-  return directions[index];
-};
-
-// Tocar timbre/chime sonoro nativo con Web Audio API (0 costo, 100% offline)
-const playNotificationChime = () => {
-  try {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'sine';
-    // Acorde de atención: D5 (587 Hz) -> A5 (880 Hz)
-    osc.frequency.setValueAtTime(587.33, now);
-    osc.frequency.setValueAtTime(880, now + 0.12);
-
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.65);
-  } catch (e) {
-    console.warn('Audio chime error:', e);
-  }
-};
-
-// Algoritmo matemático para comprobar si un punto (lat, lon) está dentro de una geocerca
-const isPositionInGeofence = (pos, geo) => {
-  if (!pos || !geo) return false;
-
-  // 1. Si Traccar ya lo tiene emparejado en geofenceIds
-  if (Array.isArray(pos.geofenceIds) && pos.geofenceIds.includes(geo.id)) {
-    return true;
-  }
-
-  const lat = pos.latitude;
-  const lon = pos.longitude;
-  if (lat == null || lon == null || !geo.area) return false;
-
-  const area = geo.area.trim();
-
-  // 2. Geocerca tipo CÍRCULO: CIRCLE (lat, lon, radio_en_metros)
-  if (area.startsWith('CIRCLE')) {
-    try {
-      const raw = area.replace(/CIRCLE|\(|\)|,/g, ' ').trim().split(/\s+/);
-      if (raw.length >= 3) {
-        const cLat = Number(raw[0]);
-        const cLon = Number(raw[1]);
-        const radius = Number(raw[2]);
-        if (!isNaN(cLat) && !isNaN(cLon) && !isNaN(radius)) {
-          const R = 6371000;
-          const dLat = ((cLat - lat) * Math.PI) / 180;
-          const dLon = ((cLon - lon) * Math.PI) / 180;
-          const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-            + Math.cos((lat * Math.PI) / 180) * Math.cos((cLat * Math.PI) / 180)
-            * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          return (R * c) <= (radius + 20); // +20 metros de tolerancia GPS
-        }
-      }
-    } catch (e) {
-      console.warn('Error evaluating circle geofence:', e);
-    }
-  }
-
-  // 3. Geocerca tipo POLÍGONO: POLYGON ((lon lat, lon lat, ...))
-  if (area.startsWith('POLYGON')) {
-    try {
-      const coordStr = area.replace(/POLYGON|\(|\)/g, ' ').trim();
-      const pairs = coordStr.split(',').map((p) => p.trim().split(/\s+/));
-      const vs = pairs.map((p) => [Number(p[0]), Number(p[1])]).filter((p) => !isNaN(p[0]) && !isNaN(p[1]));
-
-      if (vs.length >= 3) {
-        const x = lon;
-        const y = lat;
-        let inside = false;
-        for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-          const xi = vs[i][0];
-          const yi = vs[i][1];
-          const xj = vs[j][0];
-          const yj = vs[j][1];
-          const intersect = ((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / (yj - yi) + xi);
-          if (intersect) inside = !inside;
-        }
-        return inside;
-      }
-    } catch (e) {
-      console.warn('Error evaluating polygon geofence:', e);
-    }
-  }
-
-  return false;
-};
+import {
+  normalizeText,
+  formatSpokenDateTime,
+  getCardinalDirection,
+  playNotificationChime,
+  isPositionInGeofence,
+  calculateGeofenceArea,
+  getContainingGeofencesSorted,
+  findMatchingGeofence,
+  findMatchingDevice,
+} from './voiceAssistantUtil';
 
 const VoiceAssistantFab = () => {
   const classes = useStyles();
@@ -381,6 +239,22 @@ const VoiceAssistantFab = () => {
           shouldTrigger = true;
           alertMessage = `¡Alerta! El móvil ${watcher.deviceName} acaba de salir de ${watcher.geofenceName}.`;
         }
+      } else if (watcher.type === 'TWO_PHASE') {
+        const macroGeo = watcher.macroGeofenceId ? geofencesMap[watcher.macroGeofenceId] : null;
+        const innerGeo = geofencesMap[watcher.geofenceId];
+
+        if (watcher.stage === 0 && macroGeo && isPositionInGeofence(pos, macroGeo)) {
+          // Fase 1: Llegada a macro-zona de aproximación
+          watcher.stage = 1;
+          setWatchers((prev) => prev.map((w) => (w.id === watcher.id ? { ...w, stage: 1 } : w)));
+          alertMessage = `¡Atención! El móvil ${watcher.deviceName} se está aproximando: acaba de ingresar a ${macroGeo.name}.`;
+          shouldTrigger = true;
+        } else if ((watcher.stage === 1 || !macroGeo) && innerGeo && isPositionInGeofence(pos, innerGeo)) {
+          // Fase 2: Llegada a la rampa / almacén interno
+          alertMessage = `¡Llegada a Rampa! El móvil ${watcher.deviceName} acaba de ingresar a ${innerGeo.name}.`;
+          shouldTrigger = true;
+          setWatchers((prev) => prev.map((w) => (w.id === watcher.id ? { ...w, triggered: true } : w)));
+        }
       } else if (watcher.type === 'MOTION') {
         const speedKmh = Math.round(speedFromKnots(pos.speed || 0, 'kmh'));
         const ignition = Boolean(pos.attributes?.ignition);
@@ -391,8 +265,10 @@ const VoiceAssistantFab = () => {
       }
 
       if (shouldTrigger) {
-        // 1. Marcar observador como disparado
-        setWatchers((prev) => prev.map((w) => (w.id === watcher.id ? { ...w, triggered: true } : w)));
+        // 1. Marcar observador como disparado (salvo en etapa 1 de two_phase)
+        if (watcher.type !== 'TWO_PHASE' || watcher.stage === 1) {
+          setWatchers((prev) => prev.map((w) => (w.id === watcher.id ? { ...w, triggered: true } : w)));
+        }
 
         // 2. Tocar chime sonoro
         playNotificationChime();
@@ -409,109 +285,33 @@ const VoiceAssistantFab = () => {
     });
   }, [positionsMap, watchers, geofencesMap, devicesMap, dispatch]);
 
+  // Escuchar registros de observadores desde el menú contextual o componentes externos
+  useEffect(() => {
+    const handleAddWatcherEvent = (e) => {
+      const newWatcher = e.detail;
+      if (!newWatcher) return;
+
+      setWatchers((prev) => {
+        const exists = prev.some((w) => w.deviceId === newWatcher.deviceId && w.type === newWatcher.type && w.geofenceId === newWatcher.geofenceId && !w.triggered);
+        if (exists) return prev;
+        return [...prev, newWatcher];
+      });
+
+      if (newWatcher.confirmationSpeech) {
+        setResponseMessage(newWatcher.confirmationSpeech);
+        setDialogOpen(true);
+        speak(newWatcher.confirmationSpeech);
+      }
+      playNotificationChime();
+    };
+
+    window.addEventListener('geozoone-add-watcher', handleAddWatcherEvent);
+    return () => window.removeEventListener('geozoone-add-watcher', handleAddWatcherEvent);
+  }, []);
+
   // Cancelar un observador activo
   const handleRemoveWatcher = (id) => {
     setWatchers((prev) => prev.filter((w) => w.id !== id));
-  };
-
-  // Buscar coincidencia de vehículo o conductor
-  const findMatchingDevice = (rawQuery) => {
-    const q = normalizeText(rawQuery);
-
-    const stopWords = [
-      'que', 'vehiculos', 'vehiculo', 'unidades', 'unidad', 'carros', 'carro', 'moviles', 'movil',
-      'estan', 'dentro', 'fuera', 'donde', 'esta', 'quienes', 'quien', 'como', 'flota', 'base',
-      'chorrillos', 'hay', 'en', 'la', 'el', 'avisame', 'cuando', 'llegue', 'salga', 'se', 'mueva',
-      'arranque', 'si', 'notificame', 'alerta',
-    ];
-
-    // 1. Coincidencia exacta o parcial por nombre/placa del vehículo
-    for (const dev of deviceList) {
-      const devName = normalizeText(dev.name);
-      const devPlate = devName.replace(/\s+/g, '');
-      const queryNoSpaces = q.replace(/\s+/g, '');
-
-      if (devName && (q.includes(devName) || devName.includes(q))) {
-        return dev;
-      }
-      if (devPlate.length >= 3 && queryNoSpaces.includes(devPlate)) {
-        return dev;
-      }
-      const parts = devName.split(/[-\s]+/);
-      for (const part of parts) {
-        if (part.length >= 2 && !stopWords.includes(part) && q.includes(part)) {
-          return dev;
-        }
-      }
-    }
-
-    // 2. Coincidencia por conductor
-    for (const driver of driverList) {
-      const driverName = normalizeText(driver.name);
-      if (driverName.length >= 3 && q.includes(driverName)) {
-        const linkedDev = deviceList.find((d) =>
-          d.attributes?.driverUniqueId === driver.uniqueId
-          || d.attributes?.driverId === driver.id
-          || normalizeText(d.attributes?.driverName || '').includes(driverName)
-          || normalizeText(d.name).includes(driverName)
-        );
-        if (linkedDev) return linkedDev;
-      }
-    }
-
-    // 3. Coincidencia difusa por palabras en la consulta
-    const words = q.split(' ').filter((w) => w.length >= 3 && !stopWords.includes(w));
-    for (const word of words) {
-      const found = deviceList.find((d) => normalizeText(d.name).includes(word));
-      if (found) return found;
-    }
-
-    return null;
-  };
-
-  // Buscar coincidencia inteligente de geocerca (Puntaje por palabras y coincidencia exacta)
-  const findMatchingGeofence = (rawQuery) => {
-    const q = normalizeText(rawQuery);
-    if (!geofenceList.length) return null;
-
-    let bestGeo = null;
-    let maxScore = 0;
-
-    for (const geo of geofenceList) {
-      const geoName = normalizeText(geo.name);
-      if (!geoName) continue;
-
-      if (q.includes(geoName)) {
-        const score = 100 + geoName.length;
-        if (score > maxScore) {
-          maxScore = score;
-          bestGeo = geo;
-        }
-        continue;
-      }
-
-      const geoWords = geoName.split(' ').filter((w) => w.length >= 3);
-      let matchCount = 0;
-      for (const word of geoWords) {
-        if (q.includes(word)) {
-          matchCount += (word === 'base' ? 5 : 20);
-        }
-      }
-
-      if (matchCount > 0 && matchCount > maxScore) {
-        maxScore = matchCount;
-        bestGeo = geo;
-      }
-    }
-
-    if (!bestGeo && (q.includes('base') || q.includes('cochera') || q.includes('patio') || q.includes('planta'))) {
-      bestGeo = geofenceList.find((g) => {
-        const gn = normalizeText(g.name);
-        return gn.includes('base') || gn.includes('cochera') || gn.includes('patio') || gn.includes('planta');
-      });
-    }
-
-    return bestGeo;
   };
 
   // =========================================================================
@@ -525,11 +325,11 @@ const VoiceAssistantFab = () => {
     setIsProcessing(true);
 
     try {
-      const targetGeo = findMatchingGeofence(text);
-      const targetDev = findMatchingDevice(text);
+      const targetGeo = findMatchingGeofence(text, geofenceList);
+      const targetDev = findMatchingDevice(text, deviceList, driverList);
 
       // =====================================================================
-      // FASE 5.2: DISPARADORES PROACTIVOS ("Avísame cuando...")
+      // FASE 5.2 / 5.3: DISPARADORES PROACTIVOS ("Avísame cuando...")
       // =====================================================================
       const isWatchRequest =
         text.includes('avisame')
@@ -540,39 +340,48 @@ const VoiceAssistantFab = () => {
         || text.includes('avisame cuando');
 
       if (isWatchRequest) {
-        // 1. Caso: "Avísame cuando [móvil] llegue / entre a [geocerca]"
+        // 1. Caso: Llegada ("llegue", "entre", "ingrese")
         const isArrival = text.includes('llegue') || text.includes('entre') || text.includes('ingrese') || text.includes('llegar');
-        // 2. Caso: "Avísame cuando [móvil] salga / abandone [geocerca]"
+        // 2. Caso: Salida ("salga", "abandone", "se vaya", "salida")
         const isDeparture = text.includes('salga') || text.includes('abandone') || text.includes('se vaya') || text.includes('salida');
-        // 3. Caso: "Avísame si [móvil] se mueve / arranca / enciende"
+        // 3. Caso: Movimiento ("mueva", "arranque", "encienda", "avance")
         const isMotion = text.includes('mueva') || text.includes('arranque') || text.includes('encienda') || text.includes('avance');
+        // 4. Caso: Vigilancia escalonada
+        const isTwoPhase = text.includes('escalonada') || (text.includes('zona') && isArrival);
 
-        if (targetDev && (isArrival || isDeparture) && targetGeo) {
+        // INFERENCIA CONTEXTUAL DE SALIDA:
+        // Si el usuario pide que le avise cuando el vehículo salga, pero no especificó geocerca (o STT transcribió "venta/brenta")
+        let resolvedGeo = targetGeo;
+        let inferredContextually = false;
+
+        if (targetDev && isDeparture && !resolvedGeo) {
           const pos = positionsMap[targetDev.id];
-          const isCurrentlyInside = isPositionInGeofence(pos, targetGeo);
+          const insideGeos = getContainingGeofencesSorted(pos, geofenceList);
+          if (insideGeos.length > 0) {
+            resolvedGeo = insideGeos[0]; // Geocerca primaria de menor superficie (ej: Brenntag)
+            inferredContextually = true;
+          }
+        }
 
-          if (isArrival && isCurrentlyInside) {
-            const reply = `El móvil ${targetDev.name} ya se encuentra actualmente dentro de ${targetGeo.name}.`;
+        // Caso 1: Salida de Geocerca (con Inferencia Contextual)
+        if (targetDev && isDeparture && resolvedGeo) {
+          const pos = positionsMap[targetDev.id];
+          const isCurrentlyInside = isPositionInGeofence(pos, resolvedGeo);
+
+          if (!isCurrentlyInside && !inferredContextually) {
+            const reply = `El móvil ${targetDev.name} ya está actualmente fuera de ${resolvedGeo.name}.`;
             setResponseMessage(reply);
             speak(reply);
             return;
           }
 
-          if (isDeparture && !isCurrentlyInside) {
-            const reply = `El móvil ${targetDev.name} ya está actualmente fuera de ${targetGeo.name}.`;
-            setResponseMessage(reply);
-            speak(reply);
-            return;
-          }
-
-          const watcherType = isArrival ? 'ARRIVAL' : 'DEPARTURE';
           const newWatcher = {
             id: `watch_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-            type: watcherType,
+            type: 'DEPARTURE',
             deviceId: targetDev.id,
             deviceName: targetDev.name,
-            geofenceId: targetGeo.id,
-            geofenceName: targetGeo.name,
+            geofenceId: resolvedGeo.id,
+            geofenceName: resolvedGeo.name,
             createdAt: Date.now(),
             triggered: false,
           };
@@ -580,15 +389,78 @@ const VoiceAssistantFab = () => {
           setWatchers((prev) => [...prev, newWatcher]);
           setTargetDevice(targetDev);
 
-          const reply = isArrival
-            ? `Entendido. He programado la alerta. Te avisaré tan pronto el móvil ${targetDev.name} ingrese a ${targetGeo.name}.`
-            : `Listo. He programado la alerta. Te avisaré inmediatamente cuando el móvil ${targetDev.name} salga de ${targetGeo.name}.`;
+          const contextPrefix = inferredContextually
+            ? `Detecté que el móvil ${targetDev.name} se encuentra en ${resolvedGeo.name}. `
+            : '';
+          const reply = `${contextPrefix}Listo. He programado la alerta. Te avisaré inmediatamente cuando el móvil ${targetDev.name} salga de ${resolvedGeo.name}.`;
 
           setResponseMessage(reply);
           speak(reply);
           return;
         }
 
+        // Caso 2: Vigilancia Escalonada en 2 fases
+        if (targetDev && isTwoPhase && resolvedGeo) {
+          const baseArea = calculateGeofenceArea(resolvedGeo);
+          const macroGeo = geofenceList.find((g) => g.id !== resolvedGeo.id && (g.name.toLowerCase().includes(resolvedGeo.name.toLowerCase()) || resolvedGeo.name.toLowerCase().includes(g.name.toLowerCase())) && calculateGeofenceArea(g) > baseArea);
+
+          const newWatcher = {
+            id: `watch_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+            type: 'TWO_PHASE',
+            deviceId: targetDev.id,
+            deviceName: targetDev.name,
+            geofenceId: resolvedGeo.id,
+            geofenceName: resolvedGeo.name,
+            macroGeofenceId: macroGeo?.id || null,
+            macroGeofenceName: macroGeo?.name || null,
+            stage: 0,
+            createdAt: Date.now(),
+            triggered: false,
+          };
+
+          setWatchers((prev) => [...prev, newWatcher]);
+          setTargetDevice(targetDev);
+
+          const macroStr = macroGeo ? `a ${macroGeo.name} y luego a ${resolvedGeo.name}` : `a ${resolvedGeo.name}`;
+          const reply = `He activado vigilancia escalonada para el móvil ${targetDev.name}. Te avisaré al llegar ${macroStr}.`;
+          setResponseMessage(reply);
+          speak(reply);
+          return;
+        }
+
+        // Caso 3: Llegada a Geocerca
+        if (targetDev && isArrival && resolvedGeo) {
+          const pos = positionsMap[targetDev.id];
+          const isCurrentlyInside = isPositionInGeofence(pos, resolvedGeo);
+
+          if (isCurrentlyInside) {
+            const reply = `El móvil ${targetDev.name} ya se encuentra actualmente dentro de ${resolvedGeo.name}.`;
+            setResponseMessage(reply);
+            speak(reply);
+            return;
+          }
+
+          const newWatcher = {
+            id: `watch_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+            type: 'ARRIVAL',
+            deviceId: targetDev.id,
+            deviceName: targetDev.name,
+            geofenceId: resolvedGeo.id,
+            geofenceName: resolvedGeo.name,
+            createdAt: Date.now(),
+            triggered: false,
+          };
+
+          setWatchers((prev) => [...prev, newWatcher]);
+          setTargetDevice(targetDev);
+
+          const reply = `Entendido. He programado la alerta. Te avisaré tan pronto el móvil ${targetDev.name} ingrese a ${resolvedGeo.name}.`;
+          setResponseMessage(reply);
+          speak(reply);
+          return;
+        }
+
+        // Caso 4: Movimiento / Encendido de motor
         if (targetDev && isMotion) {
           const newWatcher = {
             id: `watch_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
@@ -616,7 +488,7 @@ const VoiceAssistantFab = () => {
           return;
         }
 
-        if (!targetGeo && !isMotion) {
+        if (!resolvedGeo && !isMotion) {
           const sampleGeo = geofenceList[0]?.name || 'Base Chorrillos';
           const reply = `¿De qué geocerca deseas que te avise? Puedes decir: "Avísame cuando el ${targetDev.name} llegue a la ${sampleGeo}".`;
           setResponseMessage(reply);
@@ -732,9 +604,13 @@ const VoiceAssistantFab = () => {
         }
 
         let geoInfo = '';
-        const currentGeo = geofenceList.find((g) => isPositionInGeofence(pos, g));
-        if (currentGeo) {
-          geoInfo = `dentro de ${currentGeo.name}`;
+        const containingGeos = getContainingGeofencesSorted(pos, geofenceList);
+        if (containingGeos.length > 0) {
+          const primaryGeo = containingGeos[0];
+          geoInfo = `dentro de ${primaryGeo.name}`;
+          if (containingGeos.length > 1) {
+            geoInfo += ` (zona ${containingGeos[1].name})`;
+          }
         }
 
         let locationStr = '';
@@ -990,7 +866,15 @@ const VoiceAssistantFab = () => {
                   <Chip
                     key={w.id}
                     size="small"
-                    label={`${w.deviceName} ➔ ${w.type === 'ARRIVAL' ? 'Llegada a ' : w.type === 'DEPARTURE' ? 'Salida de ' : 'Movimiento '}${w.geofenceName || ''}`}
+                    label={
+                      w.type === 'ARRIVAL'
+                        ? `${w.deviceName} ➔ Llegada a ${w.geofenceName || ''}`
+                        : w.type === 'DEPARTURE'
+                        ? `${w.deviceName} ➔ Salida de ${w.geofenceName || ''}`
+                        : w.type === 'TWO_PHASE'
+                        ? `${w.deviceName} ➔ 🎯 2 Fases (${w.stage === 0 ? 'Aprox. ' + (w.macroGeofenceName || 'Zona') : 'Rampa ' + (w.geofenceName || '')})`
+                        : `${w.deviceName} ➔ Movimiento/Motor`
+                    }
                     onDelete={() => handleRemoveWatcher(w.id)}
                     color="warning"
                     variant="outlined"

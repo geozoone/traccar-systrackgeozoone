@@ -117,6 +117,21 @@ const MapPositions = ({ positions, onClick, showStatus, selectedPosition, titleF
     }
   }, [onClick]);
 
+  const onMarkerContextMenu = useCallback((event) => {
+    event.preventDefault();
+    const feature = event.features && event.features[0];
+    if (feature && feature.properties && feature.properties.deviceId) {
+      window.dispatchEvent(new CustomEvent('geozoone-open-watcher-modal', {
+        detail: {
+          deviceId: feature.properties.deviceId,
+          positionId: feature.properties.id,
+          x: event.point.x,
+          y: event.point.y,
+        },
+      }));
+    }
+  }, []);
+
   const zoomToCluster = useCallback((clusterId, coordinates) => {
     const sourceObj = map.getSource(id);
     if (!sourceObj) return;
@@ -296,6 +311,8 @@ const MapPositions = ({ positions, onClick, showStatus, selectedPosition, titleF
       map.on('mouseenter', source, onMouseEnter);
       map.on('mouseleave', source, onMouseLeave);
       map.on('click', source, onMarkerClick);
+      map.on('contextmenu', source, onMarkerContextMenu);
+      map.on('contextmenu', `halo-${source}`, onMarkerContextMenu);
     });
 
     // 4. Burbuja de Grupo (Cluster) diferenciada con colores vivos y doble borde blanco (B3)
@@ -375,6 +392,8 @@ const MapPositions = ({ positions, onClick, showStatus, selectedPosition, titleF
         map.off('mouseenter', source, onMouseEnter);
         map.off('mouseleave', source, onMouseLeave);
         map.off('click', source, onMarkerClick);
+        map.off('contextmenu', source, onMarkerContextMenu);
+        map.off('contextmenu', `halo-${source}`, onMarkerContextMenu);
 
         if (map.getLayer(`halo-${source}`)) {
           map.removeLayer(`halo-${source}`);
@@ -390,7 +409,7 @@ const MapPositions = ({ positions, onClick, showStatus, selectedPosition, titleF
         }
       });
     };
-  }, [mapCluster, clusters, clustersCircle, onMarkerClick, onClusterClick, onClusterMouseEnter, onClusterMouseLeave]);
+  }, [mapCluster, clusters, clustersCircle, onMarkerClick, onMarkerContextMenu, onClusterClick, onClusterMouseEnter, onClusterMouseLeave]);
 
   useEffect(() => {
     [id, selected].forEach((source) => {
