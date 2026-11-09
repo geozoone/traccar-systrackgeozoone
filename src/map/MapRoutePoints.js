@@ -54,9 +54,16 @@ const MapRoutePoints = ({ positions, onClick }) => {
       ? '<span style="color:#10b981;font-weight:700;">🟢 Encendido</span>'
       : '<span style="color:#ef4444;font-weight:700;">🔴 Apagado</span>';
 
+    const keyframeBadge = p.keyframeLabel
+      ? `<span style="background:rgba(255,255,255,0.28); color:#ffffff; font-size:10px; padding:2px 7px; border-radius:4px; font-weight:700; margin-left:6px; letter-spacing:0.2px;">${p.keyframeLabel}</span>`
+      : '';
+
     popupNode.innerHTML = `
       <div style="background:linear-gradient(135deg, #1e293b, #0f172a); color:#fff; padding:8px 12px; border-radius:6px 6px 0 0; display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-weight:700; font-size:12px; letter-spacing:0.3px;">📍 Punto #${p.index} <span style="font-weight:400; font-size:11px; opacity:0.75;">/ ${p.total}</span></span>
+        <div style="display:flex; align-items:center;">
+          <span style="font-weight:700; font-size:12px; letter-spacing:0.3px;">📍 Punto #${p.index} <span style="font-weight:400; font-size:11px; opacity:0.75;">/ ${p.total}</span></span>
+          ${keyframeBadge}
+        </div>
         <span style="background:rgba(255,255,255,0.2); font-size:10px; padding:2px 6px; border-radius:10px; font-weight:600;">${p.speedKmh} km/h</span>
       </div>
       <div style="padding:10px 12px; background:#ffffff; border-radius:0 0 6px 6px; line-height:1.6;">
@@ -185,6 +192,8 @@ const MapRoutePoints = ({ positions, onClick }) => {
           ignition: pos.attributes?.ignition ? 'ON' : 'OFF',
           odometer: pos.attributes?.totalDistance || pos.attributes?.distance || null,
           address: pos.address || '',
+          keyframeType: pos.keyframeType || '',
+          keyframeLabel: pos.keyframeLabel || '',
         },
       };
     });

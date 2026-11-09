@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   IconButton,
   Table, TableBody, TableCell, TableHead, TableRow,
+  Chip, Box, Typography,
 } from '@mui/material';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import LocationSearchingIcon from '@mui/icons-material/LocationSearching';
@@ -28,10 +29,12 @@ import scheduleReport from './common/scheduleReport';
 
 const columnsArray = [
   ['startTime', 'reportStartTime'],
-  ['startOdometer', 'positionOdometer'],
+  ['originContext', 'reportOriginContext'],
   ['address', 'positionAddress'],
-  ['endTime', 'reportEndTime'],
+  ['destinationContext', 'reportDestinationContext'],
   ['duration', 'reportDuration'],
+  ['endTime', 'reportEndTime'],
+  ['startOdometer', 'positionOdometer'],
   ['engineHours', 'reportEngineHours'],
   ['spentFuel', 'reportSpentFuel'],
 ];
@@ -46,10 +49,59 @@ const StopReportPage = () => {
   const volumeUnit = useAttributePreference('volumeUnit');
   const hours12 = usePreference('twelveHourFormat');
 
-  const [columns, setColumns] = usePersistedState('stopColumns', ['startTime', 'endTime', 'startOdometer', 'address']);
+  const [columns, setColumns] = usePersistedState('stopColumns', [
+    'startTime',
+    'originContext',
+    'address',
+    'destinationContext',
+    'duration',
+  ]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+
+  // Auto-resolución en segundo plano de direcciones para cada parada
+  const resolveStopAddresses = async (stopList) => {
+    const cache = new Map();
+    const queue = [...stopList];
+    const maxConcurrency = 3;
+
+    const worker = async () => {
+      while (queue.length > 0) {
+        const stop = queue.shift();
+        if (!stop || (stop.address && stop.address.trim().length > 0)) continue;
+
+        const lat = stop.latitude;
+        const lon = stop.longitude;
+        if (lat == null || lon == null) continue;
+
+        const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+        if (cache.has(cacheKey)) {
+          stop.address = cache.get(cacheKey);
+          setItems([...stopList]);
+          continue;
+        }
+
+        try {
+          const res = await fetch(`/api/server/geocode?latitude=${lat}&longitude=${lon}`);
+          if (res.ok) {
+            const text = await res.text();
+            if (text && text.trim().length > 0 && !text.toLowerCase().includes('error')) {
+              const cleanAddr = text.trim();
+              stop.address = cleanAddr;
+              cache.set(cacheKey, cleanAddr);
+              setItems([...stopList]);
+            }
+          }
+        } catch (e) {
+          console.warn('Stop geocode error:', e);
+        }
+      }
+    };
+
+    const workers = Array.from({ length: maxConcurrency }, () => worker());
+    await Promise.all(workers);
+  };
 
   const handleSubmit = useCatch(async ({ deviceId, from, to, type }) => {
     const query = new URLSearchParams({ deviceId, from, to });
@@ -67,7 +119,14 @@ const StopReportPage = () => {
           headers: { Accept: 'application/json' },
         });
         if (response.ok) {
-          setItems(await response.json());
+          const rawStops = await response.json();
+          const enriched = rawStops.map((s, idx) => ({
+            ...s,
+            stopNumber: idx + 1,
+          }));
+          setItems(enriched);
+          // Auto-resolver direcciones sin obligar al usuario a dar clic
+          resolveStopAddresses(enriched);
         } else {
           throw Error(await response.text());
         }
@@ -87,6 +146,13 @@ const StopReportPage = () => {
     }
   });
 
+  const getColumnLabel = (key) => {
+    if (key === 'originContext') return 'Procedencia (Punto Anterior)';
+    if (key === 'destinationContext') return 'Destino Posterior (Siguiente)';
+    const trans = columnsMap.get(key);
+    return trans ? t(trans) : key;
+  };
+
   const formatValue = (item, key) => {
     switch (key) {
       case 'startTime':
@@ -100,11 +166,119 @@ const StopReportPage = () => {
         return formatHours(item[key]);
       case 'spentFuel':
         return formatVolume(item[key], volumeUnit, t);
-      case 'address':
-        return (<AddressValue latitude={item.latitude} longitude={item.longitude} originalAddress={item[key]} />);
+      case 'originContext': {
+        const idx = items.findIndex((it) => it.positionId === item.positionId || it === item);
+        if (idx <= 0) {
+          return (
+            <Chip
+              size="small"
+              label="🚩 Partida inicial"
+              sx={{ fontWeight: 600, fontSize: '0.72rem', backgroundColor: '#ecfdf5', color: '#047857' }}
+            />
+          );
+        }
+        const prev = items[idx - 1];
+        const prevText = prev.address || `Parada #${prev.stopNumber || idx}`;
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.78rem', color: '#475569' }}>
+            <span>⬅️</span>
+            <span style={{ fontWeight: 500 }}>{prevText}</span>
+          </Box>
+        );
+      }
+      case 'destinationContext': {
+        const idx = items.findIndex((it) => it.positionId === item.positionId || it === item);
+        if (idx >= items.length - 1) {
+          return (
+            <Chip
+              size="small"
+              label="🏁 Fin de servicio"
+              sx={{ fontWeight: 600, fontSize: '0.72rem', backgroundColor: '#f3e8ff', color: '#6b21a8' }}
+            />
+          );
+        }
+        const next = items[idx + 1];
+        const nextText = next.address || `Parada #${next.stopNumber || idx + 2}`;
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.78rem', color: '#475569' }}>
+            <span>➡️</span>
+            <span style={{ fontWeight: 500 }}>{nextText}</span>
+          </Box>
+        );
+      }
+      case 'address': {
+        if (item.address && item.address.trim().length > 0) {
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+              <Chip
+                size="small"
+                label={`#${item.stopNumber || ''}`}
+                color="primary"
+                variant="outlined"
+                sx={{ height: 20, fontSize: '0.68rem', fontWeight: 700 }}
+              />
+              <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#1e293b' }}>
+                {item.address}
+              </Typography>
+            </Box>
+          );
+        }
+        return (
+          <AddressValue
+            latitude={item.latitude}
+            longitude={item.longitude}
+            originalAddress={item[key]}
+          />
+        );
+      }
       default:
         return item[key];
     }
+  };
+
+  // Posiciones contextuales para el mapa: Parada anterior, Parada seleccionada y Próxima parada
+  const getMapPositions = () => {
+    if (!selectedItem) return [];
+    const idx = items.findIndex((it) => it.positionId === selectedItem.positionId || it === selectedItem);
+    const positions = [];
+
+    // 1. Parada anterior si existe
+    if (idx > 0) {
+      const prev = items[idx - 1];
+      positions.push({
+        id: `prev_${prev.positionId || idx}`,
+        deviceId: prev.deviceId,
+        fixTime: prev.startTime,
+        latitude: prev.latitude,
+        longitude: prev.longitude,
+        name: `⬅️ Parada Anterior (#${prev.stopNumber || idx})`,
+      });
+    }
+
+    // 2. Parada actual seleccionada
+    positions.push({
+      id: selectedItem.positionId || 'current_stop',
+      deviceId: selectedItem.deviceId,
+      fixTime: selectedItem.startTime,
+      latitude: selectedItem.latitude,
+      longitude: selectedItem.longitude,
+      name: `📍 Parada Actual (#${selectedItem.stopNumber || idx + 1})`,
+    });
+
+    // 3. Parada siguiente si existe
+    if (idx < items.length - 1) {
+      const next = items[idx + 1];
+      positions.push({
+        id: `next_${next.positionId || idx}`,
+        deviceId: next.deviceId,
+        fixTime: next.startTime,
+        latitude: next.latitude,
+        longitude: next.longitude,
+        name: `➡️ Destino Posterior (#${next.stopNumber || idx + 2})`,
+      });
+    }
+
+    return positions;
   };
 
   return (
@@ -115,13 +289,8 @@ const StopReportPage = () => {
             <MapView>
               <MapGeofence />
               <MapPositions
-                positions={[{
-                  deviceId: selectedItem.deviceId,
-                  fixTime: selectedItem.startTime,
-                  latitude: selectedItem.latitude,
-                  longitude: selectedItem.longitude,
-                }]}
-                titleField="fixTime"
+                positions={getMapPositions()}
+                titleField="name"
               />
             </MapView>
             <MapCamera latitude={selectedItem.latitude} longitude={selectedItem.longitude} />
@@ -137,7 +306,7 @@ const StopReportPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell className={classes.columnAction} />
-                {columns.map((key) => (<TableCell key={key}>{t(columnsMap.get(key))}</TableCell>))}
+                {columns.map((key) => (<TableCell key={key}>{getColumnLabel(key)}</TableCell>))}
               </TableRow>
             </TableHead>
             <TableBody>

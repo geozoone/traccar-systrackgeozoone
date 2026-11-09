@@ -2,7 +2,7 @@ import React, { Fragment, useCallback, useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
-    IconButton, Table, TableBody, TableCell, TableHead, TableRow,
+    IconButton, Table, TableBody, TableCell, TableHead, TableRow, Chip, Box, Typography,
 } from '@mui/material';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import LocationSearchingIcon from '@mui/icons-material/LocationSearching';
@@ -23,6 +23,7 @@ import TableShimmer from '../common/components/TableShimmer';
 import MapCamera from '../map/MapCamera';
 import MapGeofence from '../map/MapGeofence';
 import scheduleReport from './common/scheduleReport';
+import { identifyRouteKeyframes, resolveKeyframeAddresses } from './common/routeKeyframeUtil';
 
 const RouteReportPage = () => {
     const navigate = useNavigate();
@@ -38,6 +39,7 @@ const RouteReportPage = () => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
+    const [keyframeMap, setKeyframeMap] = useState(new Map());
 
     // Modo de visualización: 'split' (dividido 50/50), 'map' (mapa completo 100%), 'table' (solo tabla)
     const [viewMode, setViewMode] = useState('split');
@@ -75,7 +77,19 @@ const RouteReportPage = () => {
                     headers: { Accept: 'application/json' },
                 });
                 if (response.ok) {
-                    setItems(await response.json());
+                    const rawItems = await response.json();
+                    setItems(rawItems);
+
+                    // 1. Identificar inteligentemente entre 25 y 50 Hitos Clave (Keyframes)
+                    const { keyframes, keyframeMap: kfMap } = identifyRouteKeyframes(rawItems);
+                    setKeyframeMap(kfMap);
+
+                    // 2. Auto-resolver en segundo plano solo los Hitos Clave (Partida, Llegada, Paradas en calle y avances de 25 km)
+                    resolveKeyframeAddresses(keyframes, (posId, resolvedAddr) => {
+                        setItems((prevItems) =>
+                            prevItems.map((it) => (it.id === posId ? { ...it, address: resolvedAddr } : it))
+                        );
+                    });
                 } else {
                     throw Error(await response.text());
                 }
@@ -221,7 +235,12 @@ const RouteReportPage = () => {
                         <MapView>
                             <MapGeofence />
                             {[...new Set(items.map((it) => it.deviceId))].map((deviceId) => {
-                                const positions = items.filter((position) => position.deviceId === deviceId);
+                                const positions = items
+                                    .filter((position) => position.deviceId === deviceId)
+                                    .map((p) => {
+                                        const kf = keyframeMap.get(p.id);
+                                        return kf ? { ...p, keyframeType: kf.type, keyframeLabel: kf.label } : p;
+                                    });
                                 return (
                                     <Fragment key={deviceId}>
                                         <MapRoutePath positions={positions} />
@@ -300,15 +319,57 @@ const RouteReportPage = () => {
                                         )}
                                     </TableCell>
                                     <TableCell>{devices[item.deviceId].name}</TableCell>
-                                    {columns.map((key) => (
-                                        <TableCell key={key}>
-                                            <PositionValue
-                                                position={item}
-                                                property={item.hasOwnProperty(key) ? key : null}
-                                                attribute={item.hasOwnProperty(key) ? null : key}
-                                            />
-                                        </TableCell>
-                                    ))}
+                                    {columns.map((key) => {
+                                        if (key === 'address' && keyframeMap.has(item.id)) {
+                                            const kf = keyframeMap.get(item.id);
+                                            const badgeBg =
+                                                kf.type === 'START' ? '#ecfdf5' :
+                                                kf.type === 'END' ? '#f3e8ff' :
+                                                kf.type === 'STOP' ? '#fef2f2' : '#eff6ff';
+                                            const badgeColor =
+                                                kf.type === 'START' ? '#047857' :
+                                                kf.type === 'END' ? '#6b21a8' :
+                                                kf.type === 'STOP' ? '#b91c1c' : '#1d4ed8';
+
+                                            return (
+                                                <TableCell key={key}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap' }}>
+                                                        <Chip
+                                                            size="small"
+                                                            label={kf.label}
+                                                            sx={{
+                                                                height: 22,
+                                                                fontSize: '0.68rem',
+                                                                fontWeight: 700,
+                                                                backgroundColor: badgeBg,
+                                                                color: badgeColor,
+                                                                border: `1px solid ${badgeColor}33`,
+                                                            }}
+                                                        />
+                                                        {item.address ? (
+                                                            <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#1e293b' }}>
+                                                                {item.address}
+                                                            </Typography>
+                                                        ) : (
+                                                            <Typography variant="caption" sx={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
+                                                                ⏳ Resolviendo dirección...
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
+                                                </TableCell>
+                                            );
+                                        }
+
+                                        return (
+                                            <TableCell key={key}>
+                                                <PositionValue
+                                                    position={item}
+                                                    property={item.hasOwnProperty(key) ? key : null}
+                                                    attribute={item.hasOwnProperty(key) ? null : key}
+                                                />
+                                            </TableCell>
+                                        );
+                                    })}
                                 </TableRow>
                             )) : (<TableShimmer columns={columns.length + 2} startAction />)}
                         </TableBody>
