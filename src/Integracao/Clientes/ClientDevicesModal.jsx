@@ -209,3 +209,4 @@ const ClientDevicesModal = ({
 };
 
 export default ClientDevicesModal;
+
