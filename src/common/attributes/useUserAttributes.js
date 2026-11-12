@@ -1,6 +1,10 @@
 import { useMemo } from 'react';
 
 export default (t) => useMemo(() => ({
+  voiceToken: {
+    name: '🎙️ Token Copiloto de Voz (voiceToken)',
+    type: 'string',
+  },
   telegramChatId: {
     name: t('attributeTelegramChatId'),
     type: 'string',
