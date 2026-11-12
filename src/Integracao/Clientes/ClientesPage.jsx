@@ -20,6 +20,7 @@ import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import RecentActorsIcon from '@mui/icons-material/RecentActors';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
 
@@ -31,7 +32,7 @@ import SettingsMenu from '../../settings/components/SettingsMenu';
 import CollectionFab from '../../settings/components/CollectionFab';
 import CollectionActions from './CollectionActions';
 import TableShimmer from '../../common/components/TableShimmer';
-import { useManager } from '../../common/util/permissions';
+import { useManager, useAdministrator } from '../../common/util/permissions';
 import SearchHeader, { filterByKeyword } from '../../settings/components/SearchHeader';
 import { usePreference } from '../../common/util/preferences';
 import useSettingsStyles from '../../settings/common/useSettingsStyles';
@@ -39,6 +40,7 @@ import Pagination from '../../common/components/Paginations/Pagination';
 
 import ClientDevicesModal from './ClientDevicesModal';
 import ClientGroupsModal from './ClientGroupsModal';
+import CopilotoTokenModal, { getCopilotoBadgeInfo } from './CopilotoTokenModal';
 
 const PageTitle = ({ icon, breadcrumbs }) => {
     return (
@@ -54,6 +56,7 @@ const ClientesPage = () => {
     const navigate = useNavigate();
     const t = useTranslation();
     const manager = useManager();
+    const admin = useAdministrator();
     const hours12 = usePreference('twelveHourFormat');
 
     // Redux groups dict { [groupId]: group }
@@ -75,6 +78,7 @@ const ClientesPage = () => {
     // Estado para modales de consulta rápida
     const [devicesModalState, setDevicesModalState] = useState({ open: false, client: null, loading: false });
     const [groupsModalState, setGroupsModalState] = useState({ open: false, client: null, loading: false });
+    const [copilotoModalUser, setCopilotoModalUser] = useState(null);
     const [copiedImei, setCopiedImei] = useState(null);
     const [exportingExcel, setExportingExcel] = useState(false);
 
@@ -556,42 +560,64 @@ const ClientesPage = () => {
                                     <TableCell>{item.phone}</TableCell>
                                     <TableCell>{item.email}</TableCell>
 
-                                    {/* Botones / Chips de Inspección Rápida de Dispositivos y Grupos */}
+                                    {/* Botones / Chips de Inspección Rápida de Dispositivos, Grupos y Generador de Copiloto */}
                                     <TableCell align="center">
-                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.8, flexWrap: 'wrap' }}>
-                                            <Tooltip title="Ver detalle de dispositivos conectados">
-                                                <Chip
-                                                    size="small"
-                                                    icon={<DirectionsCarIcon sx={{ fontSize: '14px !important' }} />}
-                                                    label={
-                                                        companyDevicesMap[item.id] !== undefined
-                                                            ? `${companyDevicesMap[item.id].length} GPS`
-                                                            : 'Ver GPS'
-                                                    }
-                                                    onClick={() => handleOpenDevicesModal(item)}
-                                                    clickable
-                                                    color="primary"
-                                                    variant="outlined"
-                                                    sx={{ height: 24, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
-                                                />
-                                            </Tooltip>
-                                            <Tooltip title="Ver grupos asignados">
-                                                <Chip
-                                                    size="small"
-                                                    icon={<FolderIcon sx={{ fontSize: '14px !important' }} />}
-                                                    label={
-                                                        companyGroupsMap[item.id] !== undefined
-                                                            ? `${companyGroupsMap[item.id].length} Grupos`
-                                                            : 'Ver Grupos'
-                                                    }
-                                                    onClick={() => handleOpenGroupsModal(item)}
-                                                    clickable
-                                                    color="default"
-                                                    variant="outlined"
-                                                    sx={{ height: 24, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
-                                                />
-                                            </Tooltip>
-                                        </Box>
+                                        {(() => {
+                                            const badge = getCopilotoBadgeInfo(item);
+                                            return (
+                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.8, flexWrap: 'wrap' }}>
+                                                    <Tooltip title="Ver detalle de dispositivos conectados">
+                                                        <Chip
+                                                            size="small"
+                                                            icon={<DirectionsCarIcon sx={{ fontSize: '14px !important' }} />}
+                                                            label={
+                                                                companyDevicesMap[item.id] !== undefined
+                                                                    ? `${companyDevicesMap[item.id].length} GPS`
+                                                                    : 'Ver GPS'
+                                                            }
+                                                            onClick={() => handleOpenDevicesModal(item)}
+                                                            clickable
+                                                            color="primary"
+                                                            variant="outlined"
+                                                            sx={{ height: 24, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
+                                                        />
+                                                    </Tooltip>
+                                                    <Tooltip title="Ver grupos asignados">
+                                                        <Chip
+                                                            size="small"
+                                                            icon={<FolderIcon sx={{ fontSize: '14px !important' }} />}
+                                                            label={
+                                                                companyGroupsMap[item.id] !== undefined
+                                                                    ? `${companyGroupsMap[item.id].length} Grupos`
+                                                                    : 'Ver Grupos'
+                                                            }
+                                                            onClick={() => handleOpenGroupsModal(item)}
+                                                            clickable
+                                                            color="default"
+                                                            variant="outlined"
+                                                            sx={{ height: 24, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
+                                                        />
+                                                    </Tooltip>
+                                                    <Tooltip title="Generar Token de Voz / Pases de Ruta (GeoZoone Copiloto)">
+                                                        <Chip
+                                                            size="small"
+                                                            icon={<RecordVoiceOverIcon sx={{ fontSize: '14px !important' }} />}
+                                                            label={badge.label}
+                                                            onClick={() => setCopilotoModalUser(item)}
+                                                            clickable
+                                                            variant={badge.variant}
+                                                            sx={{
+                                                                height: 24,
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: 700,
+                                                                cursor: 'pointer',
+                                                                ...(badge.bg ? { backgroundColor: badge.bg, color: badge.textColor } : {}),
+                                                            }}
+                                                        />
+                                                    </Tooltip>
+                                                </Box>
+                                            );
+                                        })()}
                                     </TableCell>
 
                                     <TableCell>{formatBoolean(item.disabled, t)}</TableCell>
@@ -758,6 +784,19 @@ const ClientesPage = () => {
                 groups={groupsModalState.client ? (companyGroupsMap[groupsModalState.client.id] || []) : []}
                 devices={groupsModalState.client ? (companyDevicesMap[groupsModalState.client.id] || []) : []}
                 loading={groupsModalState.loading}
+            />
+
+            {/* Modal Generador de Tokens y Pases de Ruta (GeoZoone Copiloto) */}
+            <CopilotoTokenModal
+                open={Boolean(copilotoModalUser)}
+                onClose={() => setCopilotoModalUser(null)}
+                targetUser={copilotoModalUser}
+                devices={copilotoModalUser ? (companyDevicesMap[copilotoModalUser.id] || []) : []}
+                isAdmin={admin}
+                onUserUpdated={(updatedUser) => {
+                    setItems((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+                    setCopilotoModalUser(updatedUser);
+                }}
             />
         </PageLayout>
     );

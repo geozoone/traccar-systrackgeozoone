@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    Table, TableRow, TableCell, TableHead, TableBody, TableFooter, useTheme, useMediaQuery, Typography, Toolbar
+    Table, TableRow, TableCell, TableHead, TableBody, TableFooter, useTheme, useMediaQuery, Typography, Toolbar, Chip, Tooltip
 } from '@mui/material';
 import LoginIcon from '@mui/icons-material/Login';
 import LinkIcon from '@mui/icons-material/Link';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 import { useCatch, useEffectAsync } from '../../reactHelper';
 import { formatBoolean, formatTime } from '../../common/util/formatter';
 import { useTranslation } from '../../common/components/LocalizationProvider';
@@ -13,10 +14,11 @@ import SettingsMenu from '../../settings/components/SettingsMenu';
 import CollectionFab from '../../settings/components/CollectionFab';
 import CollectionActions from '../../settings/components/CollectionActions';
 import TableShimmer from '../../common/components/TableShimmer';
-import { useManager } from '../../common/util/permissions';
+import { useManager, useAdministrator } from '../../common/util/permissions';
 import SearchHeader, { filterByKeyword } from '../../settings/components/SearchHeader';
 import { usePreference } from '../../common/util/preferences';
 import useSettingsStyles from '../../settings/common/useSettingsStyles';
+import CopilotoTokenModal, { getCopilotoBadgeInfo } from '../Clientes/CopilotoTokenModal';
 
 import RecentActorsIcon from '@mui/icons-material/RecentActors';
 import GroupsIcon from '@mui/icons-material/Groups';
@@ -43,6 +45,7 @@ const ClientesPage = () => {
     const t = useTranslation();
 
     const manager = useManager();
+    const admin = useAdministrator();
 
     const hours12 = usePreference('twelveHourFormat');
 
@@ -50,6 +53,7 @@ const ClientesPage = () => {
     const [items, setItems] = useState([]);
     const [searchKeyword, setSearchKeyword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [copilotoModalUser, setCopilotoModalUser] = useState(null);
 
     const handleLogin = useCatch(async (userId) => {
         const response = await fetch(`/api/session/${userId}`);
@@ -137,35 +141,58 @@ const ClientesPage = () => {
             <Table className={classes.table}>
                 <TableHead>
                     <TableRow>
-                    <TableCell>{t('sharedName')}</TableCell>
+                        <TableCell>{t('sharedName')}</TableCell>
                         <TableCell>{"CPF"}</TableCell>
                         <TableCell>{t('sharedPhone')}</TableCell>
-                        <TableCell>{t('userEmail')}</TableCell>   
+                        <TableCell>{t('userEmail')}</TableCell>
+                        <TableCell align="center">{"Copiloto de Voz"}</TableCell>
                         <TableCell>{t('sharedDisabled')}</TableCell>
                         <TableCell>{t('userExpirationTime')}</TableCell>
                         <TableCell className={classes.columnAction} />
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {!loading ? currentTableData.filter(filterByKeyword(searchKeyword)).map((item) => (
-                        <TableRow key={item.id}>
-                            <TableCell>{item.name}</TableCell>
-                            <TableCell>{(item.attributes.informacoes && item.attributes.informacoes.cpf) || ''}</TableCell>
-                            <TableCell>{item.phone}</TableCell>
-                            <TableCell>{item.email}</TableCell>
-                            <TableCell>{formatBoolean(item.disabled, t)}</TableCell>                            
-                            <TableCell>{formatTime(item.expirationTime, 'date', hours12)}</TableCell>  
-                            <TableCell className={classes.columnAction} padding="none">
-                                <CollectionActions
-                                    itemId={item.id}
-                                    editPath="/settings/revenda"
-                                    endpoint="users"
-                                    setTimestamp={setTimestamp}
-                                    customActions={manager ? [actionLogin, actionConnections] : [actionConnections]}
-                                />
-                            </TableCell>
-                        </TableRow>
-                    )) : (<TableShimmer columns={6} endAction />)}
+                    {!loading ? currentTableData.filter(filterByKeyword(searchKeyword)).map((item) => {
+                        const badge = getCopilotoBadgeInfo(item);
+                        return (
+                            <TableRow key={item.id}>
+                                <TableCell>{item.name}</TableCell>
+                                <TableCell>{(item.attributes.informacoes && item.attributes.informacoes.cpf) || ''}</TableCell>
+                                <TableCell>{item.phone}</TableCell>
+                                <TableCell>{item.email}</TableCell>
+                                <TableCell align="center">
+                                    <Tooltip title="Generar / Administrar Token de Copiloto de Voz para este Revendedor">
+                                        <Chip
+                                            size="small"
+                                            icon={<RecordVoiceOverIcon sx={{ fontSize: '14px !important' }} />}
+                                            label={badge.label}
+                                            onClick={() => setCopilotoModalUser(item)}
+                                            clickable
+                                            variant={badge.variant}
+                                            sx={{
+                                                height: 24,
+                                                fontSize: '0.72rem',
+                                                fontWeight: 700,
+                                                cursor: 'pointer',
+                                                ...(badge.bg ? { backgroundColor: badge.bg, color: badge.textColor } : {}),
+                                            }}
+                                        />
+                                    </Tooltip>
+                                </TableCell>
+                                <TableCell>{formatBoolean(item.disabled, t)}</TableCell>
+                                <TableCell>{formatTime(item.expirationTime, 'date', hours12)}</TableCell>
+                                <TableCell className={classes.columnAction} padding="none">
+                                    <CollectionActions
+                                        itemId={item.id}
+                                        editPath="/settings/revenda"
+                                        endpoint="users"
+                                        setTimestamp={setTimestamp}
+                                        customActions={manager ? [actionLogin, actionConnections] : [actionConnections]}
+                                    />
+                                </TableCell>
+                            </TableRow>
+                        );
+                    }) : (<TableShimmer columns={7} endAction />)}
                 </TableBody>
                 <Pagination
                     currentPage={currentPage}
@@ -176,6 +203,17 @@ const ClientesPage = () => {
             </Table>
 
             <CollectionFab editPath="/settings/revenda" />
+
+            <CopilotoTokenModal
+                open={Boolean(copilotoModalUser)}
+                onClose={() => setCopilotoModalUser(null)}
+                targetUser={copilotoModalUser}
+                isAdmin={admin}
+                onUserUpdated={(updatedUser) => {
+                    setItems((prev) => prev.map((u) => (u && u.id === updatedUser.id ? updatedUser : u)));
+                    setCopilotoModalUser(updatedUser);
+                }}
+            />
         </PageLayout>
     );
 };
