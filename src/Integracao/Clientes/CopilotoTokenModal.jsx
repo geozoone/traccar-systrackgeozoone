@@ -353,20 +353,19 @@ const CopilotoTokenModal = ({
                         : 'Anual (365 días)';
 
         const msg = [
-            `🎙️ *Bienvenido a GeoZoone Copiloto de Voz*`,
+            `🎙️ *Bienvenido a Copiloto GPS (Asistente de Voz)*`,
             `Hola *${targetUser?.name || 'Cliente'}*, ya está activo tu asistente inteligente de telemetría por voz manos libres.`,
             ``,
             `🔑 *Tu Token Secreto de Acceso:*`,
             `*${token}*`,
             ``,
             `📋 *Plan asignado:* ${PLAN_DEFINITIONS[plan]?.label || plan} (${expText})`,
-            `🌐 *Servidor GPS:* https://gps.geozoone.com`,
-            `🗣️ *Palabra Clave:* Geozoone`,
+            `🗣️ *Palabra Clave:* Copiloto`,
             ``,
             `📲 *Pasos para activarlo en tu celular:*`,
-            `1. Abre la app *GeoZoone Copiloto* y baja a *Configuración del Servidor*.`,
+            `1. Abre la app *Copiloto GPS* y baja a *Configuración de Acceso*.`,
             `2. Pega tu Token *${token}* y presiona *Guardar*.`,
-            `3. Toca el botón verde *Activar Copiloto* y pregunta por voz: *"¿Dónde está el..."* o *"¿Cómo está la flota?"*`,
+            `3. Toca el botón verde *Activar Copiloto* y pregunta por voz: *"¿Dónde está el ABC-999?"* o *"¿Cómo está la flota?"*`,
         ].join('\n');
 
         handleCopyText(msg, 'wa_main');
@@ -383,14 +382,14 @@ const CopilotoTokenModal = ({
             : 'Pase Recurrente de Despacho';
 
         const msg = [
-            `🚛 *Pase de Seguimiento por Voz — GeoZoone Copiloto*`,
+            `🚛 *Pase de Seguimiento por Voz — Copiloto GPS*`,
             `Estimado cliente *${passItem.clientName}*, compartimos su código de acceso para consultar en tiempo real la ubicación de las unidades asignadas a su despacho:`,
             ``,
             `🔑 *Token de Ruta:* *${passItem.token}*`,
             `🚚 *Unidades autorizadas hoy:* ${assignedPlates || 'Ninguna asignada aún'}`,
             `⏳ *Vigencia:* ${expLabel}`,
             ``,
-            `📲 En la app *GeoZoone Copiloto*, ingrese el Token *${passItem.token}*, presione *Guardar* y consulte con su voz diciendo: *"¿Dónde está el ${assignedPlates.split(',')[0]?.trim() || 'camión'}?"* o *"¿En cuánto tiempo llega?"*`,
+            `📲 En la app *Copiloto GPS*, ingrese el Token *${passItem.token}*, presione *Guardar* y consulte con su voz diciendo: *"¿Dónde está el ${assignedPlates.split(',')[0]?.trim() || 'ABC-999'}?"* o *"¿En cuánto tiempo llega?"*`,
         ].join('\n');
 
         handleCopyText(msg, `wa_pass_${passItem.id}`);
@@ -524,7 +523,7 @@ const CopilotoTokenModal = ({
             const savedUser = await putResp.json();
             setFeedback({
                 type: 'success',
-                text: '¡Licencia y Tokens de GeoZoone Copiloto guardados y activados inmediatamente!',
+                text: '¡Licencia y Tokens de Copiloto GPS guardados y activados inmediatamente!',
             });
 
             if (onUserUpdated) {
@@ -558,7 +557,7 @@ const CopilotoTokenModal = ({
                     <RecordVoiceOverIcon sx={{ fontSize: 28, color: '#38bdf8' }} />
                     <Box>
                         <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '1.05rem', lineHeight: 1.2 }}>
-                            Generador Inteligente de Tokens — GeoZoone Copiloto
+                            Generador Inteligente de Tokens — Copiloto GPS
                         </Typography>
                         <Typography variant="caption" sx={{ color: '#bae6fd', display: 'block' }}>
                             {isResellerTarget ? '🏢 Cuenta Revendedor (Acceso Multi-Flota)' : '🚛 Cuenta Cliente / Flota'} • {targetUser?.name || ''}
@@ -1121,8 +1120,8 @@ const CopilotoTokenModal = ({
                                 <Divider />
                                 <Typography variant="caption" sx={{ color: '#581c87' }}>
                                     🗣️ <strong>Ejemplo de orden por voz:</strong><br />
-                                    • <em>«Geozoone, bloquear motor del 808 código {commandPin || '4590'}»</em><br />
-                                    • <em>«Geozoone, restaurar motor del 808 código {commandPin || '4590'}»</em>
+                                    • <em>«Copiloto, bloquear motor del ABC-999 código {commandPin || '4590'}»</em><br />
+                                    • <em>«Copiloto, restaurar motor del ABC-999 código {commandPin || '4590'}»</em>
                                 </Typography>
                             </Box>
                         )}
@@ -1149,3 +1148,4 @@ const CopilotoTokenModal = ({
 };
 
 export default CopilotoTokenModal;
+
