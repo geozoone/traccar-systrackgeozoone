@@ -101,21 +101,11 @@ const ClientesPage = () => {
             if (response.ok) {
                 let Revendas = await response.json();
 
-                Revendas.sort((a, b) => {
-                    if (a.name < b.name) {
-                        return -1;
-                    } else {
-                        return true;
-                    }
+                let listRevendas = Revendas.filter((r) => r && r.attributes && r.attributes.nivel == 2);
+
+                listRevendas.sort((a, b) => {
+                    return (a.name || '').localeCompare(b.name || '');
                 });
-
-                let listRevendas = [];
-
-                for (var i = 0; i < Revendas.length; i++) {
-                    if (Revendas[i].attributes.nivel == 2) {
-                        listRevendas[i] = Revendas[i];
-                    }
-                }
 
                 setItems(listRevendas);
                 //setItems(await response.json());
@@ -157,7 +147,7 @@ const ClientesPage = () => {
                         return (
                             <TableRow key={item.id}>
                                 <TableCell>{item.name}</TableCell>
-                                <TableCell>{(item.attributes.informacoes && item.attributes.informacoes.cpf) || ''}</TableCell>
+                                <TableCell>{item?.attributes?.informacoes?.cpf || item?.attributes?.ruc || ''}</TableCell>
                                 <TableCell>{item.phone}</TableCell>
                                 <TableCell>{item.email}</TableCell>
                                 <TableCell align="center">
