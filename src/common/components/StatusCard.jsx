@@ -9,7 +9,6 @@ import {
     Typography,
     CardActions,
     IconButton,
-    Button,
     Table,
     TableBody,
     TableRow,
@@ -59,24 +58,24 @@ import FollowTheSignsIcon from '@mui/icons-material/FollowTheSigns';
 const useStyles = makeStyles((theme) => ({
     card: {
         pointerEvents: 'auto',
-        width: '350px',
+        width: '350px'//theme.dimensions.popupMaxWidth,
     },
     boxImagen: {
         width: '100%',
-        padding: "10px",
+        padding: "10px"
     },
     media: {
         height: theme.dimensions.popupImageHeight,
         display: 'flex',
         justifyContent: 'flex-end',
-        alignItems: 'flex-start',
+        alignItems: 'flex-start'
     },
     boxInfo: {
         display: 'flex',
         justifyContent: 'center',
         flexWrap: 'wrap',
         fontSize: '12px',
-        textAlign: 'center',
+        textAlign: 'center'
     },
     mediaButton: {
         color: theme.palette.primary.contrastText,
@@ -113,7 +112,7 @@ const useStyles = makeStyles((theme) => ({
         borderBottom: 'none',
         color: '#075561',
         padding: '0px 5px',
-        textAlign: 'center',
+        textAlign: 'center'
     },
     cell2: {
         width: '150px',
@@ -145,30 +144,50 @@ const useStyles = makeStyles((theme) => ({
     }),
 }));
 
-const renderStatusIcon = (name) => {
+const Icons = (name) => {
+    const classes = useStyles();
+
     switch (name) {
         case 'Nível de Bateria':
-            return <BatteryFullIcon />;
+            name = <BatteryFullIcon />;
+            break;
+
         case 'Ignição':
-            return <KeyIcon />;
+            name = <KeyIcon />;
+            break;
+
         case 'Hora do dispositivo':
-            return <QueryBuilderIcon />;
+            name = <QueryBuilderIcon />;
+            break;
+
         case 'Velocidade':
-            return <SpeedIcon />;
+            name = <SpeedIcon />;
+            break;
+
         case 'Endereço':
-            return <MarkunreadMailboxIcon />;
+            name = <MarkunreadMailboxIcon />;
+            break;
+
         case 'Distância total':
-            return <SocialDistanceIcon />;
+            name = <SocialDistanceIcon />
+            break;
+
         case 'Movimento':
-            return <FollowTheSignsIcon />;
+            name = <FollowTheSignsIcon />
+            break;
+
         case 'Direção':
-            return <SignpostIcon />;
+            name = <SignpostIcon />
+            break;
+
         case 'Bloqueado':
-            return <LockIcon />;
-        default:
-            return name;
+            name = <LockIcon />;
+            break;
+
+
     }
-};
+    return name;
+}
 
 const StatusRow = ({ name, content }) => {
     const classes = useStyles();
@@ -176,11 +195,11 @@ const StatusRow = ({ name, content }) => {
     return (
         <TableRow className='border-bottom border-3'>
             <TableCell className={`${classes.cell}`}>
-                <Typography variant="body2">{renderStatusIcon(name)}</Typography>
+                <Typography variant="body2" >{Icons(name)}</Typography>
             </TableCell>
 
             <TableCell className={`${classes.cell2}`}>
-                <Typography variant="body2">{name}</Typography>
+                <Typography variant="body2" >{name}</Typography>
             </TableCell>
 
             <TableCell className={`${classes.cell3}`}>
@@ -190,6 +209,7 @@ const StatusRow = ({ name, content }) => {
     );
 };
 
+
 const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPadding = 0 }) => {
     const classes = useStyles({ desktopPadding });
     const navigate = useNavigate();
@@ -197,6 +217,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
     const t = useTranslation();
 
     const deviceReadonly = useDeviceReadonly();
+
     const device = useSelector((state) => state.devices.items[deviceId]);
 
     const deviceImage = device?.attributes?.deviceImage;
@@ -205,6 +226,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
     const positionItems = useAttributePreference('positionItems', 'speed,address,totalDistance,course');
 
     const [anchorEl, setAnchorEl] = useState(null);
+
     const [removing, setRemoving] = useState(false);
 
     // Seguridad de Comandos Rápidos GeoZoone (Estándar Wialon)
@@ -217,7 +239,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
         device?.attributes?.bloqueoMotor === true
         || device?.attributes?.hasCut === true
         || device?.attributes?.relayInstalled === true
-        || device?.attributes?.instalacion?.corteMotor?.toString()?.startsWith('Sí')
+        || (device?.attributes?.instalacion?.corteMotor && device.attributes.instalacion.corteMotor.toString().startsWith('Sí'))
     );
 
     const openSecurityCommand = (type) => {
@@ -238,7 +260,6 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
     });
 
     const handleGeofence = useCatchCallback(async () => {
-        if (!position) return;
         const newItem = {
             name: '',
             area: `CIRCLE (${position.latitude} ${position.longitude}, 10)`,
@@ -265,9 +286,8 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
     }, [navigate, position]);
 
     const Ancora = useCatchCallback(async () => {
-        if (!position || !device) return;
         const newItem = {
-            name: 'Ancora (' + (device.name || '') + ')',
+            name: 'Ancora (' + (device.name) + ')',
             area: `CIRCLE (${position.latitude} ${position.longitude}, 2)`,
         };
         const response = await fetch('/api/geofences', {
@@ -289,26 +309,82 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
         } else {
             throw Error(await response.text());
         }
-    }, [navigate, position, device]);
+    }, [navigate, position]);
 
     const Compatilhar = () => {
-        if (!position) return;
-        let latitude = position.latitude ? position.latitude : null;
-        let longitude = position.longitude ? position.longitude : null;
+        let latitude = (position.latitude) ? position.latitude : null;
+        let longitude = (position.longitude) ? position.longitude : null;
+
         window.open(`https://www.google.com/maps/search/?api=1&query=${latitude}%2C${longitude}`, '_blank');
-    };
+    }
+
+    const PopupExample = () => (
+
+        <Popup trigger={AnchorIcon} >
+            {close => (
+                <div class="popup">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">CREAR ANCLAJE</h5>
+                            <button type="button" class="close" className="close" onClick={close} data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Quiere crear un ancla para el dispositivo. <br /><b>{device.name}</b> </p>
+
+                            <table class="w-100">
+                                {/* <tr>
+                                    <td colspan="3" class="p-3 text-center">
+                                        Bloquer
+                                        <input type="radio" id="bloqueio" name="bloqueio" value="1" class="m-2" />
+                                        Sim
+                                        <input type="radio" id="bloqueio" name="bloqueio" value="0" class="m-2" />
+                                        Não
+                                    </td>
+                                </tr> */}
+                                <tr>
+                                    <td class="p-2"><input type="radio" id="mt" name="mt" value="5" class="m-2" />5 mt</td>
+                                    <td class="p-2"><input type="radio" id="mt" name="mt" value="10" class="m-2" />10 mt</td>
+                                    <td class="p-2"><input type="radio" id="mt" name="mt" value="20" class="m-2" />20 mt</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2"><input type="radio" id="mt" name="mt" value="50" class="m-2" />50 mt</td>
+                                    <td class="p-2"><input type="radio" id="mt" name="mt" value="100" class="m-2" />100 mt</td>
+                                    <td class="p-2"><input type="radio" id="mt" name="mt" value="200" class="m-2" />200 mt</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" onClick={CeiarAncora}>CREAR</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </Popup>
+    );
 
     const CeiarAncora = useCatchCallback(async () => {
-        if (!position || !device) return;
         const metros = document.getElementsByName("mt");
+
         let mt = 5;
+
         for (let i = 0; i < metros.length; i++) {
             if (metros[i].checked)
                 mt = metros[i].value;
         }
 
+        // const bloqueio = document.getElementsByName("bloqueio");
+
+        // let blok = 0;
+
+        // for (let i = 0; i < bloqueio.length; i++) {
+        //     if(bloqueio[i].checked)   
+        //        blok = bloqueio[i].value;
+        // }
+
         const newItem = {
-            name: 'Ancora (' + (device.name || '') + ')',
+            name: 'Ancora (' + (device.name) + ')',
             area: `CIRCLE (${position.latitude} ${position.longitude}, ${mt})`,
         };
         const response = await fetch('/api/geofences', {
@@ -330,204 +406,181 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
         } else {
             throw Error(await response.text());
         }
-    }, [navigate, position, device]);
+    }, [navigate, position]);
 
-    const PopupExample = () => (
-        <Popup
-            trigger={
-                <IconButton title="Crear Anclaje" disabled={!position || disableActions}>
-                    <AnchorIcon />
-                </IconButton>
-            }
-            modal
-            nested
-        >
-            {(close) => (
-                <div style={{ background: '#fff', padding: 20, borderRadius: 8, boxShadow: '0 8px 30px rgba(0,0,0,0.3)', maxWidth: 350 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <Typography variant="h6" style={{ fontSize: 16, fontWeight: 700 }}>CREAR ANCLAJE</Typography>
-                        <IconButton size="small" onClick={close}>
-                            <CloseIcon fontSize="small" />
-                        </IconButton>
-                    </div>
-                    <div>
-                        <Typography variant="body2" style={{ marginBottom: 10 }}>
-                            ¿Desea crear un ancla para el dispositivo <b>{device?.name}</b>?
-                        </Typography>
-                        <table style={{ width: '100%', textAlign: 'center' }}>
-                            <tbody>
-                                <tr>
-                                    <td style={{ padding: 6 }}><label><input type="radio" id="mt5" name="mt" value="5" defaultChecked style={{ marginRight: 4 }} />5 mt</label></td>
-                                    <td style={{ padding: 6 }}><label><input type="radio" id="mt10" name="mt" value="10" style={{ marginRight: 4 }} />10 mt</label></td>
-                                    <td style={{ padding: 6 }}><label><input type="radio" id="mt20" name="mt" value="20" style={{ marginRight: 4 }} />20 mt</label></td>
-                                </tr>
-                                <tr>
-                                    <td style={{ padding: 6 }}><label><input type="radio" id="mt50" name="mt" value="50" style={{ marginRight: 4 }} />50 mt</label></td>
-                                    <td style={{ padding: 6 }}><label><input type="radio" id="mt100" name="mt" value="100" style={{ marginRight: 4 }} />100 mt</label></td>
-                                    <td style={{ padding: 6 }}><label><input type="radio" id="mt200" name="mt" value="200" style={{ marginRight: 4 }} />200 mt</label></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-                        <Button variant="contained" color="primary" onClick={() => { CeiarAncora(); close(); }}>
-                            CREAR
-                        </Button>
-                    </div>
-                </div>
-            )}
-        </Popup>
-    );
-
-    if (!device) {
-        return null;
-    }
-
-    const veiculo = device?.attributes?.veiculo || {};
+    const veiculo = (device.attributes.veiculo == undefined && {} || device.attributes.veiculo);
 
     return (
         <>
             <div className={classes.root}>
-                <Draggable handle={`.${classes.media}, .${classes.header}`}>
-                    <Card elevation={3} className={classes.card}>
-                        <div className={classes.header}>
-                            <Typography variant="body2" color="textSecondary">
-                                {device.name}
-                            </Typography>
-                            <IconButton
-                                size="small"
-                                onClick={onClose}
-                                onTouchStart={onClose}
-                            >
-                                <CloseIcon fontSize="small" />
-                            </IconButton>
-                        </div>
-
-                        {deviceImage && (
-                            <div className={classes.boxImagen}>
-                                <CardMedia
-                                    className={classes.media}
-                                    image={`/api/media/${device.uniqueId}/${deviceImage}`}
-                                />
+                {device && (
+                    <Draggable
+                        handle={`.${classes.media}, .${classes.header}`}
+                    >
+                        <Card elevation={3} className={classes.card}>
+                            <div className={classes.header}>
+                                <Typography variant="body2" color="textSecondary">
+                                    {device.name}
+                                </Typography>
+                                <IconButton
+                                    size="small"
+                                    onClick={onClose}
+                                    onTouchStart={onClose}
+                                >
+                                    <CloseIcon fontSize="small" />
+                                </IconButton>
                             </div>
-                        )}
 
-                        <div className={classes.boxInfo}>
-                            {Boolean(veiculo && veiculo.marca && veiculo.modelo && device.contact) && (
-                                <div className='w-75 p-2 m-1 border border-secondary rounded-pill fs-1'>
-                                    {veiculo.marca} {veiculo.modelo} / Placa {device.contact}
+                            {deviceImage && (
+                                <div className={classes.boxImagen}>
+                                    <CardMedia
+                                        className={classes.media}
+                                        image={`/api/media/${device.uniqueId}/${deviceImage}`}
+                                    >
+                                    </CardMedia>
                                 </div>
                             )}
 
-                            <div className='w-75 p-2 m-1 border border-secondary rounded-pill fs-1'>{`${device.uniqueId}`}</div>
-                        </div>
+                            <div className={classes.boxInfo}>
+                                {Object.keys(veiculo).length && veiculo.marca && veiculo.modelo && device.contact && (
+                                    <div className='w-75 p-2 m-1 border border-secondary rounded-pill fs-1'>
+                                        {veiculo.marca} {veiculo.modelo} / Placa {device.contact}
+                                    </div>
+                                ) || ''}
 
-                        {position && (
-                            <CardContent className={`${classes.content}`}>
-                                <Table size="small" classes={{ root: classes.table }}>
-                                    <TableBody>
-                                        {positionItems.split(',').filter((key) => Boolean(position && (position[key] !== undefined || position.attributes?.[key] !== undefined))).map((key) => (
-                                            <StatusRow
-                                                key={key}
-                                                name={positionAttributes.hasOwnProperty(key) ? positionAttributes[key].name : key}
-                                                content={(
-                                                    <PositionValue
-                                                        position={position}
-                                                        property={position.hasOwnProperty(key) ? key : null}
-                                                        attribute={position.hasOwnProperty(key) ? null : key}
-                                                    />
-                                                )}
-                                            />
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        )}
-                        <CardActions classes={{ root: classes.actions }} disableSpacing>
-                            <IconButton
-                                onClick={() => position?.id && navigate(`/position/${position.id}`)}
-                                disabled={!position}
-                            >
-                                <LoupeIcon />
-                            </IconButton>
-                            <IconButton
-                                onClick={Compatilhar}
-                                disabled={!position}
-                            >
-                                <ShareIcon />
-                            </IconButton>
+                                <div className='w-75 p-2 m-1 border border-secondary rounded-pill fs-1'>{`${device.uniqueId}`}</div>
+                            </div>
 
-                            <PopupExample />
-
-                            <IconButton
-                                onClick={() => navigate('/replay')}
-                                disabled={disableActions || !position}
-                            >
-                                <ReplayIcon />
-                            </IconButton>
-
-                            {/* Envío general de comandos (solo si NO está limitado) */}
-                            {!limitCommands && !deviceReadonly && (
-                                <Tooltip title={t('deviceCommand')}>
-                                    <IconButton
-                                        onClick={() => navigate(`/settings/device/${deviceId}/command`)}
-                                        disabled={disableActions}
-                                    >
-                                        <PublishIcon />
-                                    </IconButton>
-                                </Tooltip>
+                            {position && (
+                                <CardContent className={`${classes.content}`}>
+                                    <Table size="small" classes={`${{ root: classes.table }} border border-primary`}>
+                                        <TableBody>
+                                            {positionItems.split(',').filter((key) => position.hasOwnProperty(key) || position.attributes.hasOwnProperty(key)).map((key) => (
+                                                <StatusRow
+                                                    key={key}
+                                                    name={positionAttributes.hasOwnProperty(key) ? positionAttributes[key].name : key}
+                                                    content={(
+                                                        <PositionValue
+                                                            position={position}
+                                                            property={position.hasOwnProperty(key) ? key : null}
+                                                            attribute={position.hasOwnProperty(key) ? null : key}
+                                                        />
+                                                    )}
+                                                />
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
                             )}
+                            <CardActions classes={{ root: classes.actions }} disableSpacing>
+                                <IconButton
+                                    onClick={() => navigate(`/position/${position.id}`)}
+                                >
+                                    <LoupeIcon />
+                                </IconButton>
+                                <IconButton
+                                    onClick={Compatilhar}
+                                >
+                                    <ShareIcon />
+                                </IconButton>
 
-                            {/* Comandos Rápidos Blindados estilo Wialon: Motor (solo si tiene corte instalado) */}
-                            {!deviceReadonly && hasEngineCut && (
-                                <>
-                                    <Tooltip title="Bloquear Motor (Corte de Combustible)">
+                                {/* <IconButton
+                                    onClick={handleGeofence}
+                                >
+                                    <ShareLocationIcon />
+                                </IconButton> */}
+
+                                <IconButton>
+                                    <PopupExample />
+                                </IconButton>
+
+                                {/* <IconButton
+                                    color="secondary"
+                                    onClick={(e) => setAnchorEl(e.currentTarget)}
+                                    disabled={!position}
+                                >
+                                    <PendingIcon />
+                                </IconButton> */}
+
+                                <IconButton
+                                    onClick={() => navigate('/replay')}
+                                    disabled={disableActions || !position}
+                                >
+                                    <ReplayIcon />
+                                </IconButton>
+
+                                {/* Envío general de comandos (solo si NO está limitado) */}
+                                {!limitCommands && !deviceReadonly && (
+                                    <Tooltip title={t('deviceCommand')}>
                                         <IconButton
-                                            onClick={() => openSecurityCommand('engineStop')}
+                                            onClick={() => navigate(`/settings/device/${deviceId}/command`)}
                                             disabled={disableActions}
-                                            color="error"
                                         >
-                                            <LockIcon />
+                                            <PublishIcon />
                                         </IconButton>
                                     </Tooltip>
-                                    <Tooltip title="Restaurar Motor (Habilitar Combustible)">
+                                )}
+
+                                {/* Comandos Rápidos Blindados estilo Wialon: Motor (solo si tiene corte instalado) */}
+                                {!deviceReadonly && hasEngineCut && (
+                                    <>
+                                        <Tooltip title="Bloquear Motor (Corte de Combustible)">
+                                            <IconButton
+                                                onClick={() => openSecurityCommand('engineStop')}
+                                                disabled={disableActions}
+                                                color="error"
+                                            >
+                                                <LockIcon />
+                                            </IconButton>
+                                        </Tooltip>
+                                        <Tooltip title="Restaurar Motor (Habilitar Combustible)">
+                                            <IconButton
+                                                onClick={() => openSecurityCommand('engineResume')}
+                                                disabled={disableActions}
+                                                color="success"
+                                            >
+                                                <LockOpenIcon />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </>
+                                )}
+
+                                {/* Reinicio Remoto del GPS (para todos los que tengan permisos de comando) */}
+                                {!deviceReadonly && (
+                                    <Tooltip title="Reiniciar Rastreador GPS">
                                         <IconButton
-                                            onClick={() => openSecurityCommand('engineResume')}
+                                            onClick={() => openSecurityCommand('rebootDevice')}
                                             disabled={disableActions}
-                                            color="success"
+                                            color="warning"
                                         >
-                                            <LockOpenIcon />
+                                            <RestartAltIcon />
                                         </IconButton>
                                     </Tooltip>
-                                </>
-                            )}
+                                )}
 
-                            {/* Reinicio Remoto del GPS (para todos los que tengan permisos de comando) */}
-                            {!deviceReadonly && (
-                                <Tooltip title="Reiniciar Rastreador GPS">
-                                    <IconButton
-                                        onClick={() => openSecurityCommand('rebootDevice')}
-                                        disabled={disableActions}
-                                        color="warning"
-                                    >
-                                        <RestartAltIcon />
-                                    </IconButton>
-                                </Tooltip>
-                            )}
+                                <IconButton
+                                    onClick={() => navigate(`/settings/device/${deviceId}`)}
+                                    disabled={disableActions || deviceReadonly}
+                                >
+                                    <EditIcon />
+                                </IconButton>
 
-                            <IconButton
-                                onClick={() => navigate(`/settings/device/${deviceId}`)}
-                                disabled={disableActions || deviceReadonly}
-                            >
-                                <EditIcon />
-                            </IconButton>
-                        </CardActions>
-                    </Card>
-                </Draggable>
+                                {/* <IconButton
+                                    onClick={() => setRemoving(true)}
+                                    disabled={disableActions || deviceReadonly}
+                                    className={classes.delete}
+                                >
+                                    <DeleteIcon />
+                                </IconButton> */}
+                            </CardActions>
+                        </Card>
+                    </Draggable>
+                )}
             </div>
             {position && (
+
                 <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-                    <MenuItem onClick={() => position?.id && navigate(`/position/${position.id}`)}><Typography color="secondary">{t('sharedShowDetails')}</Typography></MenuItem>
+                    <MenuItem onClick={() => navigate(`/position/${position.id}`)}><Typography color="secondary">{t('sharedShowDetails')}</Typography></MenuItem>
                     <MenuItem onClick={handleGeofence}>{t('sharedCreateGeofence')}</MenuItem>
                     <MenuItem component="a" target="_blank" href={`https://www.google.com/maps/search/?api=1&query=${position.latitude}%2C${position.longitude}`}>{t('linkGoogleMaps')}</MenuItem>
                     <MenuItem component="a" target="_blank" href={`http://maps.apple.com/?ll=${position.latitude},${position.longitude}`}>{t('linkAppleMaps')}</MenuItem>
