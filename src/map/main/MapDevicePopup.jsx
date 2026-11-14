@@ -6,6 +6,8 @@ import Draggable from 'react-draggable';
 import { sessionActions } from '../../store';
 import { formatTime } from '../../common/util/formatter';
 import { usePreference } from '../../common/util/preferences';
+import GeoZooneErrorBoundary from '../../modules/core/GeoZooneErrorBoundary';
+import QuickCommandBar from '../../modules/quick-commands/QuickCommandBar';
 
 // Función para resolver la dirección de calle usando Traccar o fallback a OpenStreetMap Nominatim
 export async function resolveStreetAddress(lat, lon) {
@@ -404,6 +406,9 @@ const MapDevicePopup = ({ onOpenDetails }) => {
                 📋 Ficha Completa
               </button>
             </div>
+            <GeoZooneErrorBoundary moduleName="QuickCommandBar">
+              <QuickCommandBar device={selectedDevice} position={selectedPosition} />
+            </GeoZooneErrorBoundary>
           </div>
         )}
       </div>
@@ -600,6 +605,9 @@ const MapDevicePopup = ({ onOpenDetails }) => {
                 📋 Ficha Completa
               </button>
             </div>
+            <GeoZooneErrorBoundary moduleName="QuickCommandBar">
+              <QuickCommandBar device={selectedDevice} position={selectedPosition} />
+            </GeoZooneErrorBoundary>
           </div>
         )}
       </div>
