@@ -4,16 +4,62 @@
  *
  * Responsabilidades:
  * 1. Verificar contraseña del usuario actual contra /api/session
- * 2. Enviar el comando a Traccar (/api/commands/send) con soporte inteligente de respaldo (ej. CalAmp)
- * 3. Registrar auditoría forense en /modulo/audit/command sin bloquear la operación
+ * 2. Gestionar plantillas de comandos por protocolo (CalAmp, GT06/J16, Coban, Teltonika, Syrus, etc.)
+ * 3. Enviar el comando a Traccar (/api/commands/send) con respaldo automático por plantilla
+ * 4. Registrar auditoría forense en /modulo/audit/command sin bloquear la operación
  */
 
-const CUSTOM_PROTOCOL_FALLBACKS = {
+export const CUSTOM_PROTOCOL_FALLBACKS = {
   calamp: {
     engineStop: '!R,1,1',
     engineResume: '!R,1,0',
     rebootDevice: '!R1',
   },
+  gt06: {
+    engineStop: 'RELAY,1#',
+    engineResume: 'RELAY,0#',
+    rebootDevice: 'RESET#',
+  },
+  gps103: {
+    engineStop: 'stop123456',
+    engineResume: 'resume123456',
+    rebootDevice: 'reset123456',
+  },
+  coban: {
+    engineStop: 'stop123456',
+    engineResume: 'resume123456',
+    rebootDevice: 'reset123456',
+  },
+  teltonika: {
+    engineStop: 'setdigout 1',
+    engineResume: 'setdigout 0',
+    rebootDevice: 'cpureset',
+  },
+  syrus: {
+    engineStop: '>SXP11<',
+    engineResume: '>SXP10<',
+    rebootDevice: '>SRT<',
+  },
+  meitrack: {
+    rebootDevice: 'F00',
+  },
+  skypatrol: {
+    rebootDevice: 'AT$RESET',
+  },
+};
+
+/**
+ * Determina si el dispositivo cuenta con plantilla de Reinicio (nativa en Traccar o por plantilla de protocolo).
+ */
+export const hasRebootTemplate = (position, nativeTypes = []) => {
+  if (Array.isArray(nativeTypes) && nativeTypes.includes('rebootDevice')) {
+    return true;
+  }
+  const protocol = String(position?.protocol || '').toLowerCase();
+  if (protocol && CUSTOM_PROTOCOL_FALLBACKS[protocol]?.rebootDevice) {
+    return true;
+  }
+  return false;
 };
 
 /**
@@ -37,19 +83,21 @@ export const verifyUserPassword = async (email, password) => {
 
 /**
  * Paso 2: Envía el comando rápido a Traccar.
- * Si el protocolo del GPS (ej. CalAmp) solo soporta comando personalizado ('custom'),
- * aplica automáticamente la trama oficial del fabricante como respaldo.
+ * Primero intenta el comando nativo si Traccar lo soporta para ese protocolo;
+ * si no (ej. rebootDevice en GT06/Teltonika o cualquier comando en CalAmp),
+ * envía automáticamente la plantilla oficial del fabricante vía 'custom'.
  */
-export const sendQuickCommand = async (device, position, actionType) => {
+export const sendQuickCommand = async (device, position, actionType, nativeTypes = []) => {
   if (!device || !device.id) {
     throw new Error('Dispositivo no válido.');
   }
 
   const protocol = String(position?.protocol || '').toLowerCase();
-  const protocolFallbacks = CUSTOM_PROTOCOL_FALLBACKS[protocol];
+  const protocolFallbacks = CUSTOM_PROTOCOL_FALLBACKS[protocol] || {};
+  const isNativeSupported = Array.isArray(nativeTypes) && nativeTypes.includes(actionType);
 
-  // Si es un protocolo como CalAmp que en Traccar no tiene encoder predefinido, usar trama directa
-  const initialPayload = protocolFallbacks && protocolFallbacks[actionType]
+  // Usar comando nativo si Traccar lo declara soportado; si no, usar plantilla custom del protocolo
+  const payload = !isNativeSupported && protocolFallbacks[actionType]
     ? {
         deviceId: device.id,
         type: 'custom',
@@ -61,24 +109,32 @@ export const sendQuickCommand = async (device, position, actionType) => {
         attributes: {},
       };
 
-  const response = await fetch('/api/commands/send', {
+  let response = await fetch('/api/commands/send', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(initialPayload),
+    body: JSON.stringify(payload),
   });
+
+  // Si falló el comando nativo y tenemos plantilla custom de respaldo, reintentar con la plantilla
+  if (!response.ok && payload.type !== 'custom' && protocolFallbacks[actionType]) {
+    response = await fetch('/api/commands/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        deviceId: device.id,
+        type: 'custom',
+        attributes: { data: protocolFallbacks[actionType] },
+      }),
+    });
+  }
 
   if (!response.ok) {
     const errText = await response.text();
     throw new Error(errText || 'El servidor rechazó el envío del comando.');
   }
 
-  let savedResult = false;
-  if (response.status === 202) {
-    savedResult = true; // Encolado para entrega en cuanto el GPS reporte
-  }
-
   return {
-    queued: savedResult,
+    queued: response.status === 202,
     status: response.status,
   };
 };

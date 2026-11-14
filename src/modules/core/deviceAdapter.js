@@ -20,32 +20,57 @@ export const getSafeAttributes = (entity) => {
 };
 
 /**
+ * Evalúa si el texto de corteMotor representa explícitamente que SÍ tiene corte.
+ * Evita falsos positivos con "Sin Corte (Solo Rastreo)" o "Sin especificar".
+ */
+const isAffirmativeCutText = (value) => {
+  if (!value) return false;
+  const texto = String(value).trim().toLowerCase();
+  if (!texto || texto.startsWith('sin') || texto.startsWith('no')) {
+    return false;
+  }
+  return (
+    texto.startsWith('sí')
+    || texto === 'si'
+    || texto.startsWith('si ')
+    || texto.startsWith('si-')
+    || texto.startsWith('si—')
+    || texto.includes('⚡')
+    || texto === 'true'
+    || texto === '1'
+  );
+};
+
+/**
  * Determina si el vehículo tiene instalado físicamente el relay de corte de motor.
- * Compatible con el formulario de instalación y con banderas directas.
+ * Si en la ficha de instalación se eligió "Sin especificar" ("") o "Sin Corte (Solo Rastreo)",
+ * devuelve estrictamente false.
  */
 export const hasEngineCut = (device) => {
   const attrs = getSafeAttributes(device);
-
-  if (attrs.bloqueoMotor === true || attrs.hasCut === true || attrs.relayInstalled === true) {
-    return true;
-  }
-
   const instalacion = attrs.instalacion && typeof attrs.instalacion === 'object' ? attrs.instalacion : {};
-  if (instalacion.corteMotor) {
-    const texto = String(instalacion.corteMotor).trim().toLowerCase();
-    if (texto.startsWith('sí') || texto.startsWith('si') || texto === 'true' || texto === '1') {
-      return true;
-    }
+
+  // Si existe el campo corteMotor en la ficha de instalación, su valor manda
+  if (instalacion.corteMotor !== undefined) {
+    return isAffirmativeCutText(instalacion.corteMotor);
   }
 
-  return false;
+  if (attrs.corteMotor !== undefined) {
+    return isAffirmativeCutText(attrs.corteMotor);
+  }
+
+  return Boolean(
+    attrs.bloqueoMotor === true
+    || attrs.hasCut === true
+    || attrs.relayInstalled === true
+  );
 };
 
 /**
  * Extrae la información estandarizada del vehículo (Placa, Marca, Modelo, Año, Color).
  */
 export const getVehicleInfo = (device) => {
-  if (!device || typeof device !== 'object') {
+  if (!device || typeof entity === 'undefined' && !device) {
     return {
       id: null,
       name: '',
@@ -100,8 +125,7 @@ export const syncEngineCutAttributes = (attributes = {}) => {
   const inst = safeAttrs.instalacion && typeof safeAttrs.instalacion === 'object' ? safeAttrs.instalacion : {};
 
   if (inst.corteMotor !== undefined) {
-    const texto = String(inst.corteMotor).trim().toLowerCase();
-    const tieneCorte = texto.startsWith('sí') || texto.startsWith('si');
+    const tieneCorte = isAffirmativeCutText(inst.corteMotor);
     safeAttrs.bloqueoMotor = tieneCorte;
     safeAttrs.hasCut = tieneCorte;
   }
@@ -129,4 +153,3 @@ export const canAccessRawCommands = (user, deviceReadonly = false, limitCommands
   if (limitCommands === true || user?.limitCommands === true) return false;
   return true;
 };
-

@@ -1,19 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useDeviceReadonly } from '../../common/util/permissions';
 import {
   hasEngineCut,
   canExecuteQuickCommands,
 } from '../core/deviceAdapter';
+import { hasRebootTemplate } from './commandService';
 import QuickCommandModal from './QuickCommandModal';
 
 /**
  * Barra Modular de Comandos Rápidos Protegidos (Estilo Wialon)
  * Ubicación: src/modules/quick-commands/QuickCommandBar.jsx
  *
- * Totalmente desacoplada:
- * - Si el usuario es de solo lectura ("el primo"), no renderiza nada.
- * - Si el vehículo NO tiene corte de motor instalado, oculta los botones de motor.
+ * Reglas de visibilidad:
+ * 1. Si el usuario es de solo lectura ("el primo"), no renderiza nada.
+ * 2. Si el vehículo tiene "Sin especificar" o "Sin Corte (Solo Rastreo)", oculta Apagar/Encender.
+ * 3. El botón "Reinicio GPS" solo se muestra si el equipo/protocolo tiene plantilla de reinicio.
  */
 const QuickCommandBar = ({ device, position }) => {
   const currentUser = useSelector((state) => state.session.user);
@@ -21,6 +23,28 @@ const QuickCommandBar = ({ device, position }) => {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState('engineStop');
+  const [nativeTypes, setNativeTypes] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    if (!device?.id) {
+      setNativeTypes([]);
+      return () => {};
+    }
+    fetch(`/api/commands/types?${new URLSearchParams({ deviceId: device.id }).toString()}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((list) => {
+        if (active && Array.isArray(list)) {
+          setNativeTypes(list.map((it) => it.type));
+        }
+      })
+      .catch(() => {
+        if (active) setNativeTypes([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [device?.id, position?.protocol]);
 
   if (!device) return null;
 
@@ -30,6 +54,11 @@ const QuickCommandBar = ({ device, position }) => {
   }
 
   const showMotorButtons = hasEngineCut(device);
+  const showRebootButton = hasRebootTemplate(position, nativeTypes);
+
+  if (!showMotorButtons && !showRebootButton) {
+    return null;
+  }
 
   const handleOpenCommand = (actionType) => {
     setSelectedAction(actionType);
@@ -93,19 +122,21 @@ const QuickCommandBar = ({ device, position }) => {
           </>
         )}
 
-        <button
-          type="button"
-          onClick={() => handleOpenCommand('rebootDevice')}
-          style={{
-            ...btnBaseStyle,
-            backgroundColor: '#fffbeb',
-            color: '#b45309',
-            border: '1px solid #fde68a',
-          }}
-          title="Reiniciar Rastreador GPS (Requiere contraseña)"
-        >
-          🔄 Reinicio GPS
-        </button>
+        {showRebootButton && (
+          <button
+            type="button"
+            onClick={() => handleOpenCommand('rebootDevice')}
+            style={{
+              ...btnBaseStyle,
+              backgroundColor: '#fffbeb',
+              color: '#b45309',
+              border: '1px solid #fde68a',
+            }}
+            title="Reiniciar Rastreador GPS (Requiere contraseña)"
+          >
+            🔄 Reinicio GPS
+          </button>
+        )}
       </div>
 
       <QuickCommandModal
@@ -114,6 +145,7 @@ const QuickCommandBar = ({ device, position }) => {
         device={device}
         position={position}
         actionType={selectedAction}
+        nativeTypes={nativeTypes}
       />
     </>
   );

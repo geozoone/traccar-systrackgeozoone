@@ -32,6 +32,7 @@ const QuickCommandModal = ({
   device,
   position,
   actionType, // 'engineStop' | 'engineResume' | 'rebootDevice'
+  nativeTypes = [],
 }) => {
   const currentUser = useSelector((state) => state.session.user);
 
@@ -89,7 +90,7 @@ const QuickCommandModal = ({
         return;
       }
 
-      const result = await sendQuickCommand(device, position, actionType);
+      const result = await sendQuickCommand(device, position, actionType, nativeTypes);
       const statusText = result.queued ? 'QUEUED' : 'SENT_LIVE';
 
       await logCommandAudit({
@@ -258,3 +259,4 @@ const QuickCommandModal = ({
 };
 
 export default QuickCommandModal;
+
