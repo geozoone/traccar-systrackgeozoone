@@ -99,17 +99,30 @@ const DevicePage = () => {
         try {
             const response = await fetch('/api/users');
             if (response.ok) {
-                let allUsers = await response.json();
+                let Clientes = await response.json();
 
-                let listClientes = allUsers.filter((u) => u && u.attributes && u.attributes.nivel == 3);
-                listClientes.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                Clientes.sort((a, b) => {
+                    if (a.name < b.name) {
+                        return -1;
+                    } else {
+                        return true;
+                    }
+                });
+
+                let listClientes = [];
+
+                for (var i = 0; i < Clientes.length; i++) {
+                    if (Clientes[i].attributes.nivel == 3) {
+                        if (Clientes[i].attributes.idasaas) {
+                            listClientes[i] = Clientes[i];
+                        }
+                    }
+                }
 
                 setClientes(listClientes);
             } else {
                 throw Error(await response.text());
             }
-        } catch (e) {
-            console.error('Error cargando clientes:', e);
         } finally {
             setLoading(false);
         }
@@ -389,13 +402,13 @@ const DevicePage = () => {
                                     <InputLabel>{'Cliente'}</InputLabel>
                                     <Select
                                         label={'Clietne'}
-                                        value={(item.attributes && item.attributes.veiculo && item.attributes.veiculo.cliente) || ''}
-                                        onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, veiculo: { ...(item.attributes && item.attributes.veiculo), cliente: e.target.value } } })}
+                                        value={item.attributes.veiculo && item.attributes.veiculo.cliente || ''}
+                                        onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, veiculo: { ...item.attributes.veiculo, cliente: e.target.value } } })}
                                     >
-                                        <MenuItem value=""><em>Sin asignar</em></MenuItem>
-                                        {!loading && clientes.map((c) => (
-                                            <MenuItem key={c.id} value={c.name}>{c.name}</MenuItem>
-                                        ))}
+                                        {!loading ? clientes.filter(filterByKeyword(searchKeyword)).map((clientes) => (
+                                            <MenuItem value={clientes.name}>{clientes.name}</MenuItem>
+                                        )) : id ? <MenuItem value={clientes.name}>{clientes.name}</MenuItem> : ''}
+
                                     </Select>
                                 </FormControl>
                             </span>

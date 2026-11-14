@@ -277,4 +277,3 @@ const QuickCommandSecurityModal = ({
 };
 
 export default QuickCommandSecurityModal;
-
