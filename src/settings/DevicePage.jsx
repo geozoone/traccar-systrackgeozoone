@@ -33,6 +33,7 @@ import SearchHeader, { filterByKeyword } from '../settings/components/SearchHead
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import { syncEngineCutAttributes } from '../modules/core/deviceAdapter';
 
 const useStyles = makeStyles((theme) => ({
     details: {
@@ -67,13 +68,13 @@ const DevicePage = () => {
     const setInstalacion = (field, value) => {
         const currentAttrs = (item && item.attributes) || {};
         const currentInst = currentAttrs.instalacion || {};
-        const updatedAttrs = {
+        const updatedAttrs = syncEngineCutAttributes({
             ...currentAttrs,
             instalacion: {
                 ...currentInst,
                 [field]: value,
             },
-        };
+        });
         if (field === 'notas') {
             updatedAttrs.notas = value;
         }
@@ -93,25 +94,10 @@ const DevicePage = () => {
         try {
             const response = await fetch('/api/users');
             if (response.ok) {
-                let Clientes = await response.json();
-
-                Clientes.sort((a, b) => {
-                    if (a.name < b.name) {
-                        return -1;
-                    } else {
-                        return true;
-                    }
-                });
-
-                let listClientes = [];
-
-                for (var i = 0; i < Clientes.length; i++) {
-                    if (Clientes[i].attributes.nivel == 3) {
-                        if (Clientes[i].attributes.idasaas) {
-                            listClientes[i] = Clientes[i];
-                        }
-                    }
-                }
+                const rawUsers = await response.json();
+                const listClientes = (Array.isArray(rawUsers) ? rawUsers : [])
+                    .filter((u) => u && u.attributes && Number(u.attributes.nivel) === 3)
+                    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
                 setClientes(listClientes);
             } else {
@@ -395,14 +381,13 @@ const DevicePage = () => {
                                 <FormControl>
                                     <InputLabel>{'Cliente'}</InputLabel>
                                     <Select
-                                        label={'Clietne'}
-                                        value={item.attributes.veiculo && item.attributes.veiculo.cliente || ''}
-                                        onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, veiculo: { ...item.attributes.veiculo, cliente: e.target.value } } })}
+                                        label={'Cliente'}
+                                        value={item.attributes?.veiculo?.cliente || ''}
+                                        onChange={(e) => setItem({ ...item, attributes: { ...(item.attributes || {}), veiculo: { ...(item.attributes?.veiculo || {}), cliente: e.target.value } } })}
                                     >
-                                        {!loading ? clientes.filter(filterByKeyword(searchKeyword)).map((clientes) => (
-                                            <MenuItem value={clientes.name}>{clientes.name}</MenuItem>
-                                        )) : id ? <MenuItem value={clientes.name}>{clientes.name}</MenuItem> : ''}
-
+                                        {!loading && clientes.filter(filterByKeyword(searchKeyword)).map((c) => (
+                                            <MenuItem key={c.id || c.name} value={c.name}>{c.name}</MenuItem>
+                                        ))}
                                     </Select>
                                 </FormControl>
                             </span>
@@ -422,24 +407,24 @@ const DevicePage = () => {
 
                             <span className={`form-group col-sm-3 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.veiculo && item.attributes.veiculo.marca) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, veiculo: { ...item.attributes.veiculo, marca: e.target.value } } })}
+                                    value={item.attributes?.veiculo?.marca || ''}
+                                    onChange={(e) => setItem({ ...item, attributes: { ...(item.attributes || {}), veiculo: { ...(item.attributes?.veiculo || {}), marca: e.target.value } } })}
                                     label={'Marca'}
                                 />
                             </span>
 
                             <span className={`form-group col-sm-3 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.veiculo && item.attributes.veiculo.modelo) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, veiculo: { ...item.attributes.veiculo, modelo: e.target.value } } })}
+                                    value={item.attributes?.veiculo?.modelo || ''}
+                                    onChange={(e) => setItem({ ...item, attributes: { ...(item.attributes || {}), veiculo: { ...(item.attributes?.veiculo || {}), modelo: e.target.value } } })}
                                     label={'Modelo'}
                                 />
                             </span>
 
                             <span className={`form-group col-sm-3 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.veiculo && item.attributes.veiculo.ano) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, veiculo: { ...item.attributes.veiculo, ano: e.target.value } } })}
+                                    value={item.attributes?.veiculo?.ano || ''}
+                                    onChange={(e) => setItem({ ...item, attributes: { ...(item.attributes || {}), veiculo: { ...(item.attributes?.veiculo || {}), ano: e.target.value } } })}
                                     label={'ANO'}
                                 />
                             </span>
@@ -454,24 +439,24 @@ const DevicePage = () => {
 
                             <span className={`form-group col-sm-3 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.veiculo && item.attributes.veiculo.renavan) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, veiculo: { ...item.attributes.veiculo, renavan: e.target.value } } })}
+                                    value={item.attributes?.veiculo?.renavan || ''}
+                                    onChange={(e) => setItem({ ...item, attributes: { ...(item.attributes || {}), veiculo: { ...(item.attributes?.veiculo || {}), renavan: e.target.value } } })}
                                     label={'Renavan'}
                                 />
                             </span>
 
                             <span className={`form-group col-sm-3 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.veiculo && item.attributes.veiculo.chassi) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, veiculo: { ...item.attributes.veiculo, chassi: e.target.value } } })}
+                                    value={item.attributes?.veiculo?.chassi || ''}
+                                    onChange={(e) => setItem({ ...item, attributes: { ...(item.attributes || {}), veiculo: { ...(item.attributes?.veiculo || {}), chassi: e.target.value } } })}
                                     label={'Chassi'}
                                 />
                             </span>
 
                             <span className={`form-group col-sm-3 ${classes.details} `}>
                                 <TextField
-                                    value={(item.attributes.veiculo && item.attributes.veiculo.cor) || ''}
-                                    onChange={(e) => setItem({ ...item, attributes: { ...item.attributes, veiculo: { ...item.attributes.veiculo, cor: e.target.value } } })}
+                                    value={item.attributes?.veiculo?.cor || ''}
+                                    onChange={(e) => setItem({ ...item, attributes: { ...(item.attributes || {}), veiculo: { ...(item.attributes?.veiculo || {}), cor: e.target.value } } })}
                                     label={'COR'}
                                 />
                             </span>
