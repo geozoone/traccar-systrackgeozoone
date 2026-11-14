@@ -48,6 +48,11 @@ import AnchorIcon from '@mui/icons-material/Anchor';
 import MarkunreadMailboxIcon from '@mui/icons-material/MarkunreadMailbox';
 import SocialDistanceIcon from '@mui/icons-material/SocialDistance';
 import SignpostIcon from '@mui/icons-material/Signpost';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import Tooltip from '@mui/material/Tooltip';
+import QuickCommandSecurityModal from './QuickCommandSecurityModal';
+import { useRestriction } from '../util/permissions';
 import FollowTheSignsIcon from '@mui/icons-material/FollowTheSigns';
 
 const useStyles = makeStyles((theme) => ({
@@ -223,6 +228,24 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
     const [anchorEl, setAnchorEl] = useState(null);
 
     const [removing, setRemoving] = useState(false);
+
+    // Seguridad de Comandos Rápidos GeoZoone (Estándar Wialon)
+    const limitCommands = useRestriction('limitCommands');
+    const [securityModalOpen, setSecurityModalOpen] = useState(false);
+    const [selectedActionType, setSelectedActionType] = useState('engineStop');
+
+    // Determinar si el vehículo tiene relay/corte instalado físicamente
+    const hasEngineCut = Boolean(
+        device?.attributes?.bloqueoMotor === true
+        || device?.attributes?.hasCut === true
+        || device?.attributes?.relayInstalled === true
+        || (device?.attributes?.instalacion?.corteMotor && device.attributes.instalacion.corteMotor.toString().startsWith('Sí'))
+    );
+
+    const openSecurityCommand = (type) => {
+        setSelectedActionType(type);
+        setSecurityModalOpen(true);
+    };
 
     const handleRemove = useCatch(async (removed) => {
         if (removed) {
@@ -485,20 +508,55 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
                                 >
                                     <ReplayIcon />
                                 </IconButton>
-                                <IconButton
-                                    onClick={() => navigate(`/settings/device/${deviceId}/command`)}
-                                    disabled={disableActions}
-                                >
-                                    <PublishIcon />
-                                </IconButton>
 
-                                {/* Button Bloqueio é Desbloqueio */}
-                                <IconButton
-                                    onClick={() => bloaqueio(deviceId)}
-                                    disabled={disableActions || deviceReadonly}
-                                >
-                                    <Padlock />
-                                </IconButton>
+                                {/* Envío general de comandos (solo si NO está limitado) */}
+                                {!limitCommands && !deviceReadonly && (
+                                    <Tooltip title={t('deviceCommand')}>
+                                        <IconButton
+                                            onClick={() => navigate(`/settings/device/${deviceId}/command`)}
+                                            disabled={disableActions}
+                                        >
+                                            <PublishIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
+
+                                {/* Comandos Rápidos Blindados estilo Wialon: Motor (solo si tiene corte instalado) */}
+                                {!deviceReadonly && hasEngineCut && (
+                                    <>
+                                        <Tooltip title="Bloquear Motor (Corte de Combustible)">
+                                            <IconButton
+                                                onClick={() => openSecurityCommand('engineStop')}
+                                                disabled={disableActions}
+                                                color="error"
+                                            >
+                                                <LockIcon />
+                                            </IconButton>
+                                        </Tooltip>
+                                        <Tooltip title="Restaurar Motor (Habilitar Combustible)">
+                                            <IconButton
+                                                onClick={() => openSecurityCommand('engineResume')}
+                                                disabled={disableActions}
+                                                color="success"
+                                            >
+                                                <LockOpenIcon />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </>
+                                )}
+
+                                {/* Reinicio Remoto del GPS (para todos los que tengan permisos de comando) */}
+                                {!deviceReadonly && (
+                                    <Tooltip title="Reiniciar Rastreador GPS">
+                                        <IconButton
+                                            onClick={() => openSecurityCommand('rebootDevice')}
+                                            disabled={disableActions}
+                                            color="warning"
+                                        >
+                                            <RestartAltIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                )}
 
                                 <IconButton
                                     onClick={() => navigate(`/settings/device/${deviceId}`)}
@@ -534,6 +592,14 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
                 endpoint="devices"
                 itemId={deviceId}
                 onResult={(removed) => handleRemove(removed)}
+            />
+            {/* Modal de Confirmación y Seguridad de Comandos (Estándar Wialon) */}
+            <QuickCommandSecurityModal
+                open={securityModalOpen}
+                onClose={() => setSecurityModalOpen(false)}
+                device={device}
+                position={position}
+                actionType={selectedActionType}
             />
         </>
     );

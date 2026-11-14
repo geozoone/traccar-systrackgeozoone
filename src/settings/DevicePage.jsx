@@ -77,6 +77,12 @@ const DevicePage = () => {
         if (field === 'notas') {
             updatedAttrs.notas = value;
         }
+        if (field === 'corteMotor') {
+            // Sincronizar automáticamente la bandera de bloqueo de motor
+            const hasCut = Boolean(value && value.toString().startsWith('Sí'));
+            updatedAttrs.bloqueoMotor = hasCut;
+            updatedAttrs.hasCut = hasCut;
+        }
         setItem({
             ...item,
             attributes: updatedAttrs,
