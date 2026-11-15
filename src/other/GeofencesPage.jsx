@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   Divider, Typography, IconButton, useMediaQuery, Toolbar,
 } from '@mui/material';
@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import MapView from '../map/core/MapView';
 import MapCurrentLocation from '../map/MapCurrentLocation';
 import MapGeofenceEdit from '../map/draw/MapGeofenceEdit';
+import MapPositions from '../map/MapPositions';
 import GeofencesList from './GeofencesList';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import MapGeocoder from '../map/geocoder/MapGeocoder';
@@ -66,6 +67,9 @@ const GeofencesPage = () => {
   const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [selectedGeofenceId, setSelectedGeofenceId] = useState();
+  const positions = useSelector((state) => state.session.positions);
+  const selectedDeviceId = useSelector((state) => state.devices.selectedId);
+  const selectedPosition = selectedDeviceId ? positions[selectedDeviceId] : null;
 
   const handleFile = (event) => {
     const files = Array.from(event.target.files);
@@ -129,6 +133,11 @@ const GeofencesPage = () => {
         </Drawer>
         <div className={classes.mapContainer}>
           <MapView>
+            <MapPositions
+              positions={Object.values(positions)}
+              selectedPosition={selectedPosition}
+              showStatus
+            />
             <MapGeofenceEdit selectedGeofenceId={selectedGeofenceId} />
           </MapView>
           <MapCurrentLocation />

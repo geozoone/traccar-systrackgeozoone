@@ -18,6 +18,8 @@ import MapGeocoder from '../map/geocoder/MapGeocoder';
 import MapScale from '../map/MapScale';
 import MapNotification from '../map/notification/MapNotification';
 import MapDevicePopup from '../map/main/MapDevicePopup';
+import GeoZooneErrorBoundary from '../modules/core/GeoZooneErrorBoundary';
+import MapRulerControl from '../modules/map-ruler/MapRulerControl';
 import useFeatures from '../common/util/useFeatures';
 
 const MainMap = ({ filteredPositions, selectedPosition, onEventsClick, onOpenDetails }) => {
@@ -55,6 +57,9 @@ const MainMap = ({ filteredPositions, selectedPosition, onEventsClick, onOpenDet
       <MapScale />
       <MapCurrentLocation />
       <MapGeocoder />
+      <GeoZooneErrorBoundary moduleName="MapRulerControl">
+        <MapRulerControl />
+      </GeoZooneErrorBoundary>
       {!features.disableEvents && (
         <MapNotification enabled={eventsAvailable} onClick={onEventsClick} />
       )}

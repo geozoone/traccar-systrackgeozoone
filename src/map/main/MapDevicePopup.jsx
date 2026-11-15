@@ -8,6 +8,7 @@ import { formatTime } from '../../common/util/formatter';
 import { usePreference } from '../../common/util/preferences';
 import GeoZooneErrorBoundary from '../../modules/core/GeoZooneErrorBoundary';
 import QuickCommandBar from '../../modules/quick-commands/QuickCommandBar';
+import VehicleToolsBar from '../../modules/map-tools/VehicleToolsBar';
 
 // Función para resolver la dirección de calle usando Traccar o fallback a OpenStreetMap Nominatim
 export async function resolveStreetAddress(lat, lon) {
@@ -406,6 +407,9 @@ const MapDevicePopup = ({ onOpenDetails }) => {
                 📋 Ficha Completa
               </button>
             </div>
+            <GeoZooneErrorBoundary moduleName="VehicleToolsBar">
+              <VehicleToolsBar device={selectedDevice} position={selectedPosition} address={address} />
+            </GeoZooneErrorBoundary>
             <GeoZooneErrorBoundary moduleName="QuickCommandBar">
               <QuickCommandBar device={selectedDevice} position={selectedPosition} />
             </GeoZooneErrorBoundary>
@@ -605,6 +609,9 @@ const MapDevicePopup = ({ onOpenDetails }) => {
                 📋 Ficha Completa
               </button>
             </div>
+            <GeoZooneErrorBoundary moduleName="VehicleToolsBar">
+              <VehicleToolsBar device={selectedDevice} position={selectedPosition} address={address} />
+            </GeoZooneErrorBoundary>
             <GeoZooneErrorBoundary moduleName="QuickCommandBar">
               <QuickCommandBar device={selectedDevice} position={selectedPosition} />
             </GeoZooneErrorBoundary>
