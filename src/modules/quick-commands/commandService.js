@@ -9,6 +9,18 @@
  * 4. Registrar auditoría forense en /modulo/audit/command sin bloquear la operación
  */
 
+/**
+ * Convierte un comando de texto ASCII a representación Hexadecimal par (ej: '!R1' -> '215231').
+ * Requerido por protocolos en Traccar que usan BaseProtocol.sendDataCommand -> DataConverter.parseHex()
+ * como CalAmp y Skypatrol, donde Traccar decodifica el HEX de vuelta a bytes ASCII antes de enviarlo por UDP/TCP.
+ */
+export const asciiToHex = (str) => Array.from(String(str || ''))
+  .map((ch) => ch.charCodeAt(0).toString(16).padStart(2, '0'))
+  .join('');
+
+// Protocolos en Traccar que no tienen StringProtocolEncoder y pasan por DataConverter.parseHex()
+const HEX_ENCODED_PROTOCOLS = new Set(['calamp', 'skypatrol']);
+
 export const CUSTOM_PROTOCOL_FALLBACKS = {
   calamp: {
     engineStop: '!R,1,1',
@@ -96,12 +108,17 @@ export const sendQuickCommand = async (device, position, actionType, nativeTypes
   const protocolFallbacks = CUSTOM_PROTOCOL_FALLBACKS[protocol] || {};
   const isNativeSupported = Array.isArray(nativeTypes) && nativeTypes.includes(actionType);
 
+  const rawCustomData = protocolFallbacks[actionType];
+  const encodedCustomData = rawCustomData
+    ? (HEX_ENCODED_PROTOCOLS.has(protocol) ? asciiToHex(rawCustomData) : rawCustomData)
+    : '';
+
   // Usar comando nativo si Traccar lo declara soportado; si no, usar plantilla custom del protocolo
-  const payload = !isNativeSupported && protocolFallbacks[actionType]
+  const payload = !isNativeSupported && encodedCustomData
     ? {
         deviceId: device.id,
         type: 'custom',
-        attributes: { data: protocolFallbacks[actionType] },
+        attributes: { data: encodedCustomData },
       }
     : {
         deviceId: device.id,
@@ -116,16 +133,34 @@ export const sendQuickCommand = async (device, position, actionType, nativeTypes
   });
 
   // Si falló el comando nativo y tenemos plantilla custom de respaldo, reintentar con la plantilla
-  if (!response.ok && payload.type !== 'custom' && protocolFallbacks[actionType]) {
+  if (!response.ok && payload.type !== 'custom' && encodedCustomData) {
     response = await fetch('/api/commands/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         deviceId: device.id,
         type: 'custom',
-        attributes: { data: protocolFallbacks[actionType] },
+        attributes: { data: encodedCustomData },
       }),
     });
+  }
+
+  // Si Traccar exige formato HEX (DataConverter.parseHex / DecoderException), reintentar codificando en HEX
+  if (!response.ok && rawCustomData && encodedCustomData === rawCustomData) {
+    const errBody = await response.text();
+    if (errBody.includes('parseHex') || errBody.includes('DecoderException')) {
+      response = await fetch('/api/commands/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceId: device.id,
+          type: 'custom',
+          attributes: { data: asciiToHex(rawCustomData) },
+        }),
+      });
+    } else {
+      throw new Error(errBody || 'El servidor rechazó el envío del comando.');
+    }
   }
 
   if (!response.ok) {
