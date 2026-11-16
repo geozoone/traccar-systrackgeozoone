@@ -98,6 +98,38 @@ const ClientesPage = () => {
         }
     });
 
+    const handleToggleClientStatus = useCatch(async (targetUser) => {
+        if (!targetUser || !targetUser.id) return;
+        const nextDisabled = !Boolean(targetUser.disabled);
+        const empName = getEmpresaName(targetUser);
+        const actionLabel = nextDisabled ? 'SUSPENDER el servicio' : 'REACTIVAR el servicio';
+
+        // Verificar si es la cuenta titular y tiene sub-usuarios de la misma empresa
+        const companyUsers = items.filter(
+            (u) => u && getEmpresaName(u).toLowerCase() === empName.toLowerCase()
+        );
+        const isSubUser = Boolean(targetUser.readonly || targetUser.attributes?.esSubUsuario || targetUser.attributes?.tipoCuenta === 'operador');
+        const targetGroup = (!isSubUser && companyUsers.length > 1) ? companyUsers : [targetUser];
+
+        const confirmMsg = targetGroup.length > 1
+            ? `¿Confirmas ${actionLabel} para "${empName}" y sus ${targetGroup.length} cuentas asociadas?`
+            : `¿Confirmas ${actionLabel} para "${targetUser.name || empName}"?`;
+
+        if (!window.confirm(confirmMsg)) return;
+
+        for (const u of targetGroup) {
+            const updatedPayload = { ...u, disabled: nextDisabled };
+            await fetch(`/api/users/${u.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedPayload),
+            });
+        }
+
+        const updatedIds = new Set(targetGroup.map((u) => u.id));
+        setItems((prev) => prev.map((u) => (updatedIds.has(u.id) ? { ...u, disabled: nextDisabled } : u)));
+    });
+
     const getEmpresaName = (user) => (
         user?.attributes?.empresa
         || (user?.attributes?.informacoes && user.attributes.informacoes.empresa)
@@ -460,7 +492,7 @@ const ClientesPage = () => {
                         <TableCell>{t('sharedPhone')}</TableCell>
                         <TableCell>{t('userEmail')}</TableCell>
                         <TableCell align="center">{"Flota Conectada"}</TableCell>
-                        <TableCell>{t('sharedDisabled')}</TableCell>
+                        <TableCell align="center">{"Estado Cuenta"}</TableCell>
                         <TableCell>{t('userExpirationTime')}</TableCell>
                         <TableCell className={classes.columnAction} />
                     </TableRow>
@@ -620,7 +652,25 @@ const ClientesPage = () => {
                                         })()}
                                     </TableCell>
 
-                                    <TableCell>{formatBoolean(item.disabled, t)}</TableCell>
+                                    <TableCell align="center">
+                                        <Tooltip title={item.disabled ? 'Cuenta suspendida — Clic para Reactivar' : 'Cuenta activa — Clic para Suspender por falta de pago'}>
+                                            <Chip
+                                                size="small"
+                                                label={item.disabled ? '🔴 Suspendido' : '🟢 Activo'}
+                                                onClick={() => handleToggleClientStatus(item)}
+                                                clickable
+                                                sx={{
+                                                    height: 24,
+                                                    fontSize: '0.73rem',
+                                                    fontWeight: 700,
+                                                    cursor: 'pointer',
+                                                    backgroundColor: item.disabled ? '#fee2e2' : '#dcfce7',
+                                                    color: item.disabled ? '#b91c1c' : '#15803d',
+                                                    border: item.disabled ? '1px solid #fca5a5' : '1px solid #86efac',
+                                                }}
+                                            />
+                                        </Tooltip>
+                                    </TableCell>
                                     <TableCell>{formatTime(item.expirationTime, 'date', hours12)}</TableCell>
 
                                     {/* Acciones clásicas intactas */}

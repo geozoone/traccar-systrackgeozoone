@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import {
-    useMediaQuery, InputLabel, Select, MenuItem, FormControl, Button, TextField, Link, Snackbar, IconButton, Tooltip, LinearProgress, Box,
+    useMediaQuery, InputLabel, Select, MenuItem, FormControl, Button, TextField, Link, Snackbar, IconButton, Tooltip, LinearProgress, Box, Alert,
 } from '@mui/material';
 import ReactCountryFlag from 'react-country-flag';
 import makeStyles from '@mui/styles/makeStyles';
@@ -54,6 +54,7 @@ const LoginPage = () => {
     const languageList = Object.entries(languages).map((values) => ({ code: values[0], country: values[1].country, name: values[1].name }));
 
     const [failed, setFailed] = useState(false);
+    const [suspendedMessage, setSuspendedMessage] = useState('');
 
     const [email, setEmail] = usePersistedState('loginEmail', '');
     const [password, setPassword] = useState('');
@@ -89,6 +90,7 @@ const LoginPage = () => {
 
     const handlePasswordLogin = async (event) => {
         event.preventDefault();
+        setSuspendedMessage('');
         try {
             const response = await fetch('/api/session', {
                 method: 'POST',
@@ -100,7 +102,21 @@ const LoginPage = () => {
                 dispatch(sessionActions.updateUser(user));
                 navigate('/');
             } else {
-                throw Error(await response.text());
+                const errText = await response.text();
+                let isSuspended = /disabled|expired/i.test(errText || '');
+                if (!isSuspended && email) {
+                    try {
+                        const statusRes = await fetch(`/modulo/auth/account-status?email=${encodeURIComponent(email)}`);
+                        if (statusRes.ok) {
+                            const statusData = await statusRes.json();
+                            isSuspended = Boolean(statusData?.suspended);
+                        }
+                    } catch {}
+                }
+                if (isSuspended) {
+                    setSuspendedMessage('⚠️ Su cuenta se encuentra suspendida temporalmente. Por favor comuníquese con su proveedor de GPS para reactivar el servicio.');
+                }
+                throw Error(errText);
             }
         } catch (error) {
             setFailed(true);
@@ -155,6 +171,11 @@ const LoginPage = () => {
             </div>
             <div className={classes.container}>
                 {useMediaQuery(theme.breakpoints.down('lg')) && <LogoImage color={theme.palette.primary.main} />}
+                {suspendedMessage && (
+                    <Alert severity="error" sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                        {suspendedMessage}
+                    </Alert>
+                )}
                 <TextField
                     required
                     error={failed}
@@ -165,7 +186,7 @@ const LoginPage = () => {
                     autoFocus={!email}
                     onChange={(e) => setEmail(e.target.value)}
                     onKeyUp={handleSpecialKey}
-                    helperText={failed && 'Invalid username or password'}
+                    helperText={failed && !suspendedMessage && 'Correo o contraseña incorrectos'}
                 />
                 <TextField
                     required
