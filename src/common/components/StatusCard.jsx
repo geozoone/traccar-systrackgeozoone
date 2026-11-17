@@ -40,6 +40,17 @@ import KeyIcon from '@mui/icons-material/Key';
 import SpeedIcon from '@mui/icons-material/Speed';
 import QueryBuilderIcon from '@mui/icons-material/QueryBuilder';
 import LockIcon from '@mui/icons-material/Lock';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckIcon from '@mui/icons-material/Check';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import PhoneInTalkIcon from '@mui/icons-material/PhoneInTalk';
+
+import {
+    getDeviceClient,
+    getDeviceClientPhone,
+    getDeviceSimPhone,
+    isStaffUser,
+} from '../util/deviceIdentity';
 
 import ShareIcon from '@mui/icons-material/Share';
 import ShareLocationIcon from '@mui/icons-material/ShareLocation';
@@ -212,6 +223,10 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
     const t = useTranslation();
 
     const deviceReadonly = useDeviceReadonly();
+
+    const user = useSelector((state) => state.session.user);
+    const groups = useSelector((state) => state.groups.items);
+    const [copiedImei, setCopiedImei] = useState(false);
 
     const device = useSelector((state) => state.devices.items[deviceId]);
 
@@ -386,6 +401,10 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
     }, [navigate, position]);
 
     const veiculo = (device.attributes.veiculo == undefined && {} || device.attributes.veiculo);
+    const clientName = getDeviceClient(device, groups);
+    const clientPhone = getDeviceClientPhone(device);
+    const simPhone = getDeviceSimPhone(device);
+    const isStaff = isStaffUser(user);
 
     return (
         <>
@@ -418,14 +437,140 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
                                 </div>
                             )}
 
-                            <div className={classes.boxInfo}>
-                                {Object.keys(veiculo).length && veiculo.marca && veiculo.modelo && device.contact && (
-                                    <div className='w-75 p-2 m-1 border border-secondary rounded-pill fs-1'>
-                                        {veiculo.marca} {veiculo.modelo} / Placa {device.contact}
-                                    </div>
-                                ) || ''}
+                            {/* FICHA DE IDENTIDAD Y CONTACTO TELEMÁTICO (WIALON STYLE) */}
+                            <div style={{
+                                padding: '10px 14px 8px',
+                                background: '#f8fafc',
+                                borderTop: '1px solid #e2e8f0',
+                                borderBottom: '1px solid #e2e8f0',
+                                fontSize: '13px',
+                            }}>
+                                {/* 1. CLIENTE / PROPIETARIO / FLOTA */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        Cliente:
+                                    </span>
+                                    <span style={{
+                                        fontSize: '12px',
+                                        fontWeight: 700,
+                                        color: '#0369a1',
+                                        background: '#e0f2fe',
+                                        padding: '2px 8px',
+                                        borderRadius: '4px',
+                                        maxWidth: '210px',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                    }} title={clientName || 'Sin cliente asignado'}>
+                                        {clientName || '(Sin asignar)'}
+                                    </span>
+                                </div>
 
-                                <div className='w-75 p-2 m-1 border border-secondary rounded-pill fs-1'>{`${device.uniqueId}`}</div>
+                                {/* 2. VEHÍCULO / PLACA (SI EXISTE CONTACT / MODELO) */}
+                                {veiculo.marca && veiculo.modelo && device.contact && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Vehículo:</span>
+                                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+                                            {veiculo.marca} {veiculo.modelo} ({device.contact})
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* 3. IMEI CON COPIADO EN 1 CLIC */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>IMEI:</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <code style={{
+                                            fontSize: '12px',
+                                            background: '#f1f5f9',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            color: '#0f172a',
+                                            fontWeight: 700,
+                                            border: '1px solid #cbd5e1'
+                                        }}>
+                                            {device.uniqueId}
+                                        </code>
+                                        <Tooltip title={copiedImei ? "¡Copiado!" : "Copiar IMEI"}>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => {
+                                                    if (navigator.clipboard) {
+                                                        navigator.clipboard.writeText(device.uniqueId);
+                                                        setCopiedImei(true);
+                                                        setTimeout(() => setCopiedImei(false), 2000);
+                                                    }
+                                                }}
+                                                style={{ padding: 2 }}
+                                            >
+                                                {copiedImei ? (
+                                                    <CheckIcon style={{ fontSize: 16, color: '#16a34a' }} />
+                                                ) : (
+                                                    <ContentCopyIcon style={{ fontSize: 16, color: '#64748b' }} />
+                                                )}
+                                            </IconButton>
+                                        </Tooltip>
+                                    </div>
+                                </div>
+
+                                {/* 4. TELÉFONO DEL CLIENTE / DUEÑO (CONTACTO) */}
+                                {clientPhone && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Tel. Dueño:</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <a href={`tel:${clientPhone}`} style={{ fontSize: '12px', fontWeight: 700, color: '#2563eb', textDecoration: 'none' }}>
+                                                {clientPhone}
+                                            </a>
+                                            <a
+                                                href={`https://wa.me/${clientPhone.replace(/\D/g, '')}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{ display: 'inline-flex', alignItems: 'center', color: '#16a34a' }}
+                                                title="Contactar por WhatsApp"
+                                            >
+                                                <WhatsAppIcon style={{ fontSize: 16 }} />
+                                            </a>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 5. TELÉFONO CHIP SIM GPS (M2M) - CANDADO: EXCLUSIVO STAFF (REVENDEDOR / ADMIN) */}
+                                {isStaff && (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        marginTop: 6,
+                                        paddingTop: 6,
+                                        borderTop: '1px dashed #cbd5e1'
+                                    }}>
+                                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>
+                                            📟 Chip SIM GPS:
+                                        </span>
+                                        {simPhone ? (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <code style={{
+                                                    fontSize: '11.5px',
+                                                    color: '#334155',
+                                                    fontWeight: 700,
+                                                    background: '#ffffff',
+                                                    padding: '2px 6px',
+                                                    border: '1px solid #cbd5e1',
+                                                    borderRadius: '3px'
+                                                }}>
+                                                    {simPhone}
+                                                </code>
+                                                <a href={`tel:${simPhone}`} style={{ color: '#0284c7', display: 'inline-flex', alignItems: 'center' }} title="Llamar al chip GPS">
+                                                    <PhoneInTalkIcon style={{ fontSize: 16 }} />
+                                                </a>
+                                            </div>
+                                        ) : (
+                                            <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
+                                                (Sin chip registrado)
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {position && (

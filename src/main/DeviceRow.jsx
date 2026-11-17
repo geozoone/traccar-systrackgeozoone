@@ -22,6 +22,7 @@ import { mapIconKey, mapIcons } from '../map/core/preloadImages';
 import { useAdministrator } from '../common/util/permissions';
 import { ReactComponent as EngineIcon } from '../resources/images/data/engine.svg';
 import { useAttributePreference } from '../common/util/preferences';
+import { getDeviceClient } from '../common/util/deviceIdentity';
 
 import KeyIcon from '@mui/icons-material/Key';
 import ReportGmailerrorredIcon from '@mui/icons-material/ReportGmailerrorred';
@@ -66,6 +67,7 @@ const DeviceRow = ({ data, index, style }) => {
 
 	const item = data[index];
 	const position = useSelector((state) => state.session.positions[item.id]);
+	const groups = useSelector((state) => state.groups.items);
 
 	const devicePrimary = useAttributePreference('devicePrimary', 'name');
 	const deviceSecondary = useAttributePreference('deviceSecondary', '');
@@ -80,10 +82,15 @@ const DeviceRow = ({ data, index, style }) => {
 			status = dayjs(item.lastUpdate).fromNow();
 		}
 
+		const clientName = getDeviceClient(item, groups);
+
 		return (
 			<>
-				{/* {deviceSecondary && item[deviceSecondary] && `${item[deviceSecondary]} • `} */}
-				{(Object.keys(veiculo).length && veiculo.cliente && `${item.attributes.veiculo.cliente}  • ` || (deviceSecondary && item[deviceSecondary] && `${item[deviceSecondary]}  • `))}
+				{clientName ? (
+					<span style={{ fontWeight: 600, color: '#0288d1' }}>{clientName} • </span>
+				) : (deviceSecondary && item[deviceSecondary] ? (
+					`${item[deviceSecondary]} • `
+				) : null)}
 				<span className={classes[getStatusColor(item.status)]}>{status}</span>
 			</>
 		);
