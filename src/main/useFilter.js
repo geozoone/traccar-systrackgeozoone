@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
-import { getDeviceClient } from '../common/util/deviceIdentity';
+import { getDeviceClient, getDeviceClientPhone, useDeviceOwnersMap } from '../common/util/deviceIdentity';
 
 export default (keyword, filter, filterSort, filterMap, positions, setFilteredDevices, setFilteredPositions) => {
   const groups = useSelector((state) => state.groups.items);
   const devices = useSelector((state) => state.devices.items);
+  const ownersMap = useDeviceOwnersMap();
 
   useEffect(() => {
     const deviceGroups = (device) => {
@@ -23,8 +24,9 @@ export default (keyword, filter, filterSort, filterMap, positions, setFilteredDe
       .filter((device) => !filter.groups.length || deviceGroups(device).some((id) => filter.groups.includes(id)))
       .filter((device) => {
         const lowerCaseKeyword = keyword.toLowerCase();
-        const clientName = getDeviceClient(device, groups);
-        return [device.name, device.uniqueId, device.phone, device.model, device.contact, clientName].some((s) => s && s.toLowerCase().includes(lowerCaseKeyword));
+        const clientName = getDeviceClient(device, groups, ownersMap);
+        const clientPhone = getDeviceClientPhone(device, ownersMap);
+        return [device.name, device.uniqueId, device.phone, device.model, device.contact, clientName, clientPhone].some((s) => s && s.toLowerCase().includes(lowerCaseKeyword));
       });
     switch (filterSort) {
       case 'name':
@@ -44,5 +46,5 @@ export default (keyword, filter, filterSort, filterMap, positions, setFilteredDe
     setFilteredPositions(filterMap
       ? filtered.map((device) => positions[device.id]).filter(Boolean)
       : Object.values(positions));
-  }, [keyword, filter, filterSort, filterMap, groups, devices, positions, setFilteredDevices, setFilteredPositions]);
+  }, [keyword, filter, filterSort, filterMap, groups, devices, positions, ownersMap, setFilteredDevices, setFilteredPositions]);
 };

@@ -9,6 +9,13 @@ import { usePreference } from '../../common/util/preferences';
 import GeoZooneErrorBoundary from '../../modules/core/GeoZooneErrorBoundary';
 import QuickCommandBar from '../../modules/quick-commands/QuickCommandBar';
 import VehicleToolsBar from '../../modules/map-tools/VehicleToolsBar';
+import {
+  getDeviceClient,
+  getDeviceClientPhone,
+  getDeviceSimPhone,
+  isStaffUser,
+  useDeviceOwnersMap,
+} from '../../common/util/deviceIdentity';
 
 // Función para resolver la dirección de calle usando Traccar o fallback a OpenStreetMap Nominatim
 export async function resolveStreetAddress(lat, lon) {
@@ -71,6 +78,9 @@ const MapDevicePopup = ({ onOpenDetails }) => {
   const selectedDeviceId = useSelector((state) => state.devices.selectedId);
   const devices = useSelector((state) => state.devices.items);
   const positions = useSelector((state) => state.session.positions);
+  const user = useSelector((state) => state.session.user);
+  const groups = useSelector((state) => state.groups.items);
+  const ownersMap = useDeviceOwnersMap();
   const hours12 = usePreference('twelveHourFormat');
 
   const selectedDevice = devices[selectedDeviceId];
@@ -83,6 +93,7 @@ const MapDevicePopup = ({ onOpenDetails }) => {
   const [minimized, setMinimized] = useState(false);
   const [address, setAddress] = useState('');
   const [trailLoading, setTrailLoading] = useState(false);
+  const [copiedImei, setCopiedImei] = useState(false);
 
   // Al cambiar de vehículo, restablecer visibilidad
   useEffect(() => {
@@ -150,9 +161,13 @@ const MapDevicePopup = ({ onOpenDetails }) => {
 
   const speedKmh = selectedPosition.speed != null ? Math.round(selectedPosition.speed * 1.852) : 0;
   const ignition = selectedPosition.attributes?.ignition;
-  const empresa = selectedDevice.attributes?.empresa
+  const clientName = getDeviceClient(selectedDevice, groups, ownersMap)
+    || selectedDevice.attributes?.empresa
     || selectedDevice.attributes?.informacoes?.empresa
     || '';
+  const clientPhone = getDeviceClientPhone(selectedDevice, ownersMap);
+  const simPhone = getDeviceSimPhone(selectedDevice);
+  const isStaff = isStaffUser(user);
   const battery = selectedPosition.attributes?.batteryLevel != null
     ? `${selectedPosition.attributes.batteryLevel}%`
     : (selectedPosition.attributes?.battery ? `${selectedPosition.attributes.battery}V` : null);
@@ -164,6 +179,155 @@ const MapDevicePopup = ({ onOpenDetails }) => {
     : null;
   const timeFormatted = formatTime(selectedPosition.fixTime, 'seconds', hours12);
   const gmapsLink = `https://www.google.com/maps?q=${selectedPosition.latitude},${selectedPosition.longitude}`;
+
+  const identityBlock = (
+    <div style={{
+      backgroundColor: '#f8fafc',
+      border: '1px solid #e2e8f0',
+      borderRadius: '8px',
+      padding: '8px 10px',
+      marginBottom: '10px',
+      fontSize: '11.5px',
+    }}>
+      {/* 1. Cliente / Propietario */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <span style={{ color: '#64748b', fontWeight: 700 }}>👤 Cliente:</span>
+        <span
+          style={{
+            fontWeight: 700,
+            color: '#0369a1',
+            background: '#e0f2fe',
+            padding: '1px 7px',
+            borderRadius: '4px',
+            maxWidth: '185px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={clientName || 'Sin cliente asignado'}
+        >
+          {clientName || '(Sin asignar)'}
+        </span>
+      </div>
+
+      {/* 2. IMEI con Copiado en 1 clic */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: clientPhone || isStaff ? '4px' : 0 }}>
+        <span style={{ color: '#64748b', fontWeight: 600 }}>🔢 IMEI:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <code style={{
+            fontSize: '11.5px',
+            background: '#ffffff',
+            padding: '1px 6px',
+            borderRadius: '4px',
+            color: '#0f172a',
+            fontWeight: 700,
+            border: '1px solid #cbd5e1',
+          }}>
+            {selectedDevice.uniqueId}
+          </code>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (navigator.clipboard) {
+                navigator.clipboard.writeText(selectedDevice.uniqueId);
+                setCopiedImei(true);
+                setTimeout(() => setCopiedImei(false), 2000);
+              }
+            }}
+            style={{
+              background: copiedImei ? '#dcfce7' : '#f1f5f9',
+              color: copiedImei ? '#16a34a' : '#475569',
+              border: '1px solid #cbd5e1',
+              borderRadius: '4px',
+              padding: '1px 5px',
+              fontSize: '10.5px',
+              cursor: 'pointer',
+              fontWeight: 700,
+            }}
+            title="Copiar IMEI al portapapeles"
+          >
+            {copiedImei ? '✓' : '📋'}
+          </button>
+        </div>
+      </div>
+
+      {/* 3. Teléfono del Cliente / Dueño */}
+      {clientPhone && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isStaff ? '4px' : 0 }}>
+          <span style={{ color: '#64748b', fontWeight: 600 }}>📞 Tel. Cliente:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <a href={`tel:${clientPhone}`} style={{ fontWeight: 700, color: '#2563eb', textDecoration: 'none' }}>
+              {clientPhone}
+            </a>
+            <a
+              href={`https://wa.me/${clientPhone.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                background: '#dcfce7',
+                color: '#15803d',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                fontSize: '10.5px',
+                fontWeight: 700,
+                textDecoration: 'none',
+              }}
+              title="Abrir chat de WhatsApp con el cliente"
+            >
+              WA ↗
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Chip SIM GPS (M2M) - EXCLUSIVO REVENDEDOR Y SUPERADMIN */}
+      {isStaff && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginTop: '4px',
+          paddingTop: '4px',
+          borderTop: '1px dashed #cbd5e1',
+        }}>
+          <span style={{ color: '#64748b', fontWeight: 700 }}>📟 Chip GPS:</span>
+          {simPhone ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <code style={{
+                fontSize: '11.5px',
+                color: '#0f172a',
+                fontWeight: 700,
+                background: '#ffffff',
+                padding: '1px 6px',
+                border: '1px solid #cbd5e1',
+                borderRadius: '4px',
+              }}>
+                {simPhone}
+              </code>
+              <a
+                href={`tel:${simPhone}`}
+                style={{
+                  background: '#e0f2fe',
+                  color: '#0369a1',
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+                title="Llamar al chip GPS"
+              >
+                📞
+              </a>
+            </div>
+          ) : (
+            <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>(Sin chip asignado)</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   // -------------------------------------------------------------
   // CASO 1: Tarjeta Oculta temporalmente (Pastilla Flotante para reabrir)
@@ -333,11 +497,7 @@ const MapDevicePopup = ({ onOpenDetails }) => {
         {/* Contenido expandido con scroll si no está minimizado */}
         {!minimized && (
           <div style={{ padding: '0 14px 14px', overflowY: 'auto', flex: 1 }}>
-            {empresa && (
-              <div style={{ fontSize: '11px', color: '#0369a1', fontWeight: 600, marginBottom: '6px' }}>
-                🏢 {empresa}
-              </div>
-            )}
+            {identityBlock}
 
             {/* Rejilla de métricas */}
             <div style={{
@@ -526,11 +686,7 @@ const MapDevicePopup = ({ onOpenDetails }) => {
         {/* Contenido Completo de la Tarjeta */}
         {!minimized && (
           <div style={{ padding: '12px' }}>
-            {empresa && (
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginBottom: '6px' }}>
-                🏢 {empresa}
-              </div>
-            )}
+            {identityBlock}
 
             {/* Métrica de Estado y Motor */}
             <div style={{

@@ -22,7 +22,7 @@ import { mapIconKey, mapIcons } from '../map/core/preloadImages';
 import { useAdministrator } from '../common/util/permissions';
 import { ReactComponent as EngineIcon } from '../resources/images/data/engine.svg';
 import { useAttributePreference } from '../common/util/preferences';
-import { getDeviceClient } from '../common/util/deviceIdentity';
+import { getDeviceClient, useDeviceOwnersMap } from '../common/util/deviceIdentity';
 
 import KeyIcon from '@mui/icons-material/Key';
 import ReportGmailerrorredIcon from '@mui/icons-material/ReportGmailerrorred';
@@ -68,6 +68,7 @@ const DeviceRow = ({ data, index, style }) => {
 	const item = data[index];
 	const position = useSelector((state) => state.session.positions[item.id]);
 	const groups = useSelector((state) => state.groups.items);
+	const ownersMap = useDeviceOwnersMap();
 
 	const devicePrimary = useAttributePreference('devicePrimary', 'name');
 	const deviceSecondary = useAttributePreference('deviceSecondary', '');
@@ -82,7 +83,7 @@ const DeviceRow = ({ data, index, style }) => {
 			status = dayjs(item.lastUpdate).fromNow();
 		}
 
-		const clientName = getDeviceClient(item, groups);
+		const clientName = getDeviceClient(item, groups, ownersMap);
 
 		return (
 			<>

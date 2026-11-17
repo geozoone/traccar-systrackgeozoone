@@ -16,6 +16,7 @@ import {
     Menu,
     MenuItem,
     CardMedia,
+    Tooltip,
 } from '@mui/material';
 import makeStyles from '@mui/styles/makeStyles';
 import CloseIcon from '@mui/icons-material/Close';
@@ -50,6 +51,7 @@ import {
     getDeviceClientPhone,
     getDeviceSimPhone,
     isStaffUser,
+    useDeviceOwnersMap,
 } from '../util/deviceIdentity';
 
 import ShareIcon from '@mui/icons-material/Share';
@@ -226,6 +228,7 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
 
     const user = useSelector((state) => state.session.user);
     const groups = useSelector((state) => state.groups.items);
+    const ownersMap = useDeviceOwnersMap();
     const [copiedImei, setCopiedImei] = useState(false);
 
     const device = useSelector((state) => state.devices.items[deviceId]);
@@ -400,9 +403,9 @@ const StatusCard = ({ deviceId, position, onClose, disableActions, desktopPaddin
         }
     }, [navigate, position]);
 
-    const veiculo = (device.attributes.veiculo == undefined && {} || device.attributes.veiculo);
-    const clientName = getDeviceClient(device, groups);
-    const clientPhone = getDeviceClientPhone(device);
+    const veiculo = (device?.attributes?.veiculo == undefined && {} || device.attributes.veiculo);
+    const clientName = getDeviceClient(device, groups, ownersMap);
+    const clientPhone = getDeviceClientPhone(device, ownersMap);
     const simPhone = getDeviceSimPhone(device);
     const isStaff = isStaffUser(user);
 
