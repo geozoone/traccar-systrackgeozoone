@@ -47,9 +47,14 @@ export const CUSTOM_PROTOCOL_FALLBACKS = {
     engineResume: 'setdigout 0',
     rebootDevice: 'cpureset',
   },
+  taip: {
+    engineStop: '>SSO11<',
+    engineResume: '>SSO10<',
+    rebootDevice: '>SRT<',
+  },
   syrus: {
-    engineStop: '>SXP11<',
-    engineResume: '>SXP10<',
+    engineStop: '>SSO11<',
+    engineResume: '>SSO10<',
     rebootDevice: '>SRT<',
   },
   meitrack: {
