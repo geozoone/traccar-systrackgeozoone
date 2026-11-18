@@ -5,6 +5,7 @@ import {
 import { useDispatch } from 'react-redux';
 import { LinearProgress } from '@mui/material';
 import MainPage from './main/MainPage';
+import LiveSharePage from './modules/live-share/LiveSharePage';
 import CombinedReportPage from './reports/CombinedReportPage';
 import RouteReportPage from './reports/RouteReportPage';
 import ServerPage from './settings/ServerPage';
@@ -121,6 +122,7 @@ const Navigation = () => {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/change-server" element={<ChangeServerPage />} />
+            <Route path="/live/:token" element={<LiveSharePage />} />
             <Route path="/" element={<App />}>
                 <Route index element={<MainPage />} />
 

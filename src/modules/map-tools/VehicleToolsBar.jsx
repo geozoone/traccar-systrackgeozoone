@@ -156,6 +156,31 @@ const VehicleToolsBar = ({ device, position, address }) => {
   const handleGenerateShareLink = async (hours = shareHours) => {
     setShareLoading(true);
     setShareCopied(false);
+
+    // 1. Motor propio de Visor Público en Vivo (/live/:token) con Marca Blanca del Revendedor
+    try {
+      const liveResp = await fetch('/modulo/share/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceId: device.id,
+          deviceName: device.name,
+          hours,
+          createdBy: user?.email || user?.name || '',
+        }),
+      });
+      if (liveResp.ok) {
+        const data = await liveResp.json();
+        if (data && data.token) {
+          const liveLink = `${window.location.origin}/live/${encodeURIComponent(data.token)}`;
+          setShareUrl(liveLink);
+          setShareLoading(false);
+          return;
+        }
+      }
+    } catch {}
+
+    // 2. Respaldo secundario: API nativa de Traccar /api/devices/share
     try {
       const expirationDate = new Date(Date.now() + hours * 3600 * 1000).toISOString();
       const body = new URLSearchParams();
@@ -179,7 +204,7 @@ const VehicleToolsBar = ({ device, position, address }) => {
       }
     } catch {}
 
-    // Fallback instantáneo si el servidor tiene deshabilitado /api/devices/share para ese rol
+    // 3. Último recurso si no hay conexión con el backend
     const fallbackGmaps = `https://www.google.com/maps?q=${lat},${lon}`;
     setShareUrl(fallbackGmaps);
     setShareLoading(false);
