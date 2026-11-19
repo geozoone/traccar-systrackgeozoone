@@ -14,26 +14,26 @@ const MAP_STYLES = {
   streets: {
     version: 8,
     sources: {
-      osm: {
+      googleRoad: {
         type: 'raster',
-        tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png', 'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tiles: [0, 1, 2, 3].map((i) => `https://mt${i}.google.com/vt/lyrs=m&hl=es&x={x}&y={y}&z={z}&s=Ga`),
         tileSize: 256,
-        attribution: '© OpenStreetMap',
+        attribution: '© Google Maps',
       },
     },
-    layers: [{ id: 'osm-layer', type: 'raster', source: 'osm' }],
+    layers: [{ id: 'google-road-layer', type: 'raster', source: 'googleRoad' }],
   },
   satellite: {
     version: 8,
     sources: {
-      sat: {
+      googleSat: {
         type: 'raster',
-        tiles: ['https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'],
+        tiles: [0, 1, 2, 3].map((i) => `https://mt${i}.google.com/vt/lyrs=y&hl=es&x={x}&y={y}&z={z}&s=Ga`),
         tileSize: 256,
-        attribution: '© Google',
+        attribution: '© Google Maps',
       },
     },
-    layers: [{ id: 'sat-layer', type: 'raster', source: 'sat' }],
+    layers: [{ id: 'google-sat-layer', type: 'raster', source: 'googleSat' }],
   },
 };
 
