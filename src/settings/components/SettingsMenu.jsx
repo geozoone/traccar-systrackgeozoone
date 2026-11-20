@@ -33,6 +33,7 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import CurrencyExchangeIcon from '@mui/icons-material/CurrencyExchange';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import SettingsInputAntennaIcon from '@mui/icons-material/SettingsInputAntenna';
 import makeStyles from '@mui/styles/makeStyles';
 
 const MenuItem = ({
@@ -184,6 +185,15 @@ const SettingsMenu = () => {
 								link="/settings/clientes"
 								icon={<RecentActorsIcon />}
 								selected={location.pathname.startsWith('/settings/cliente')}
+							/>
+						)}
+
+						{admin && (
+							<MenuItem
+								title='Inspector Telemático'
+								link="/settings/inspector"
+								icon={<SettingsInputAntennaIcon />}
+								selected={location.pathname === '/settings/inspector'}
 							/>
 						)}
 
