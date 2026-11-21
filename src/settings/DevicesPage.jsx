@@ -31,7 +31,7 @@ const DevicesPage = () => {
   const t = useTranslation();
 
   const groups = useSelector((state) => state.groups.items);
-  const positions = useSelector((state) => state.positions.items);
+  const positions = useSelector((state) => state.session.positions);
   const speedUnit = usePreference('speedUnit');
 
   const hours12 = usePreference('twelveHourFormat');
@@ -151,7 +151,7 @@ const DevicesPage = () => {
                 </Box>
               );
 
-              const position = positions[item.id];
+              const position = positions ? positions[item.id] : null;
               const speed = position ? Number(position.speed || 0) : 0;
               const isMoving = speed > 2.0;
               const isOnline = item.status === 'online';
