@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import {
-  Table, TableRow, TableCell, TableHead, TableBody, Box, Button, Chip, Tooltip, Typography,
+  Table, TableRow, TableCell, TableHead, TableBody, Box, Button, Chip, Tooltip, Typography, IconButton,
 } from '@mui/material';
 import LinkIcon from '@mui/icons-material/Link';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import MapIcon from '@mui/icons-material/Map';
 import { useEffectAsync } from '../reactHelper';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import PageLayout from '../common/components/PageLayout';
@@ -16,9 +19,11 @@ import TableShimmer from '../common/components/TableShimmer';
 import SearchHeader, { filterByKeyword } from './components/SearchHeader';
 import ImportDevicesDialog from './components/ImportDevicesDialog';
 import { usePreference } from '../common/util/preferences';
-import { formatTime } from '../common/util/formatter';
+import { formatTime, formatSpeed } from '../common/util/formatter';
 import { useDeviceReadonly, useCliente } from '../common/util/permissions';
 import useSettingsStyles from './common/useSettingsStyles';
+
+dayjs.extend(relativeTime);
 
 const DevicesPage = () => {
   const classes = useSettingsStyles();
@@ -26,6 +31,8 @@ const DevicesPage = () => {
   const t = useTranslation();
 
   const groups = useSelector((state) => state.groups.items);
+  const positions = useSelector((state) => state.positions.items);
+  const speedUnit = usePreference('speedUnit');
 
   const hours12 = usePreference('twelveHourFormat');
 
@@ -105,6 +112,7 @@ const DevicesPage = () => {
         <TableHead>
           <TableRow>
             <TableCell>{t('sharedName')}</TableCell>
+            <TableCell>Estado / Reporte</TableCell>
             <TableCell>{t('deviceIdentifier')}</TableCell>
             <TableCell>{t('groupParent')}</TableCell>
             <TableCell>{t('sharedPhone')}</TableCell>
@@ -143,9 +151,64 @@ const DevicesPage = () => {
                 </Box>
               );
 
+              const position = positions[item.id];
+              const speed = position ? Number(position.speed || 0) : 0;
+              const isMoving = speed > 2.0;
+              const isOnline = item.status === 'online';
+              const lastReportText = item.lastUpdate ? dayjs(item.lastUpdate).fromNow() : 'Sin señal';
+
+              let statusChip;
+              if (isOnline) {
+                if (isMoving) {
+                  statusChip = (
+                    <Chip
+                      size="small"
+                      label={`🟢 ${formatSpeed(speed, speedUnit, t)}`}
+                      color="success"
+                      sx={{ fontWeight: 'bold', height: 22, fontSize: '0.75rem' }}
+                    />
+                  );
+                } else {
+                  statusChip = (
+                    <Chip
+                      size="small"
+                      label="🔵 Detenido"
+                      color="primary"
+                      variant="outlined"
+                      sx={{ fontWeight: 'bold', height: 22, fontSize: '0.75rem' }}
+                    />
+                  );
+                }
+              } else {
+                statusChip = (
+                  <Chip
+                    size="small"
+                    label={`🔴 ${lastReportText}`}
+                    color="default"
+                    variant="outlined"
+                    sx={{ height: 22, fontSize: '0.72rem', color: 'text.secondary' }}
+                  />
+                );
+              }
+
               return (
             <TableRow key={item.id} sx={!item.groupId ? { backgroundColor: 'rgba(239, 68, 68, 0.05)' } : {}}>
               <TableCell sx={{ fontWeight: 'bold' }}>{item.name}</TableCell>
+              <TableCell>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  {statusChip}
+                  <Tooltip title="Ver en Mapa en Vivo">
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => navigate(`/?deviceId=${item.id}`)}
+                      sx={{ p: 0.3 }}
+                    >
+                      <MapIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </TableCell>
               <TableCell>{item.uniqueId}</TableCell>
               <TableCell>
                 {item.groupId ? (
@@ -204,7 +267,7 @@ const DevicesPage = () => {
               </TableCell>
             </TableRow>
               );
-            }) : (<TableShimmer columns={cliente ? 7 : 8} endAction />)}
+            }) : (<TableShimmer columns={cliente ? 8 : 9} endAction />)}
         </TableBody>
       </Table>
       <CollectionFab editPath="/settings/device" disabled={deviceReadonly || !!cliente} />

@@ -278,6 +278,22 @@ const VehicleToolsBar = ({ device, position, address }) => {
         >
           🔗 Compartir
         </button>
+
+        {!isReadonly && (
+          <button
+            type="button"
+            onClick={() => navigate(`/settings/device/${device.id}`)}
+            style={{
+              ...btnStyle,
+              backgroundColor: '#eff6ff',
+              borderColor: '#93c5fd',
+              color: '#1d4ed8',
+            }}
+            title="Editar datos del vehículo (Placa, SIM, Modelo, Instalación)"
+          >
+            ✏️ Editar
+          </button>
+        )}
       </div>
 
       {/* 1. MODAL STREET VIEW 360° (Sin API Key) */}
