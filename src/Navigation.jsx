@@ -64,6 +64,7 @@ import UsersPage from './Integracao/Users/UsersPage';
 import UserPage from './Integracao/Users/UserPage';
 
 import InspectorSuperAdminPage from './settings/InspectorSuperAdminPage';
+import OnDemandPanelPage from './modules/ondemand/OnDemandPanelPage';
 import RevendasPage from './Integracao/Revendas/RevendasPage';
 import RevendaPage from './Integracao/Revendas/RevendaPage';
 
@@ -180,6 +181,7 @@ const Navigation = () => {
                     <Route path="cliente" element={<ClientePage />} />
 
                     <Route path="inspector" element={<InspectorSuperAdminPage />} />
+                    <Route path="ondemand" element={<OnDemandPanelPage />} />
                     <Route path="revendas" element={<RevendasPage />} />
                     <Route path="revenda/:id/connections" element={<UserConnectionsPage />} />
                     <Route path="revenda/:id" element={<RevendaPage />} />

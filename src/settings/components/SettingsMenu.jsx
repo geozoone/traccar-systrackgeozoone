@@ -34,6 +34,7 @@ import CurrencyExchangeIcon from '@mui/icons-material/CurrencyExchange';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import SettingsInputAntennaIcon from '@mui/icons-material/SettingsInputAntenna';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import makeStyles from '@mui/styles/makeStyles';
 
 const MenuItem = ({
@@ -194,6 +195,15 @@ const SettingsMenu = () => {
 								link="/settings/inspector"
 								icon={<SettingsInputAntennaIcon />}
 								selected={location.pathname === '/settings/inspector'}
+							/>
+						)}
+
+						{(admin || revenda) && (
+							<MenuItem
+								title='GeoZoone Ruta (Prepago)'
+								link="/settings/ondemand"
+								icon={<LocalShippingIcon />}
+								selected={location.pathname === '/settings/ondemand'}
 							/>
 						)}
 
