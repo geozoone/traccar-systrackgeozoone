@@ -32,6 +32,8 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import RouteIcon from '@mui/icons-material/Route';
+import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../common/components/PageLayout';
 import SettingsMenu from '../../settings/components/SettingsMenu';
 import { useAdministrator, useRevenda } from '../../common/util/permissions';
@@ -54,6 +56,7 @@ const STATUS_META = {
 };
 
 const OnDemandPanelContent = () => {
+  const navigate = useNavigate();
   const isAdmin = useAdministrator();
   const isRevenda = useRevenda();
 
@@ -376,37 +379,50 @@ const OnDemandPanelContent = () => {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        {s.status === 'pending_payment' && (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="success"
-                            startIcon={approvingId === s.id ? <CircularProgress size={14} color="inherit" /> : <CheckCircleIcon />}
-                            disabled={approvingId === s.id}
-                            onClick={() => handleApproveYape(s.id, s.plate)}
-                          >
-                            Aprobar Yape
-                          </Button>
-                        )}
-                        {s.status === 'active' && liveUrl && (
-                          <Box display="inline-flex" gap={0.5}>
-                            <Tooltip title="Abrir visor en vivo">
-                              <IconButton size="small" color="primary" component="a" href={liveUrl} target="_blank" rel="noopener noreferrer">
-                                <OpenInNewIcon fontSize="small" />
+                        <Box display="inline-flex" gap={0.5} alignItems="center">
+                          {s.status === 'pending_payment' && (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="success"
+                              startIcon={approvingId === s.id ? <CircularProgress size={14} color="inherit" /> : <CheckCircleIcon />}
+                              disabled={approvingId === s.id}
+                              onClick={() => handleApproveYape(s.id, s.plate)}
+                            >
+                              Aprobar Yape
+                            </Button>
+                          )}
+                          {s.status === 'active' && liveUrl && (
+                            <>
+                              <Tooltip title="Abrir visor en vivo">
+                                <IconButton size="small" color="primary" component="a" href={liveUrl} target="_blank" rel="noopener noreferrer">
+                                  <OpenInNewIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title={copiedKey === `live-${s.id}` ? '¡Enlace copiado!' : 'Copiar enlace /live'}>
+                                <IconButton size="small" onClick={() => copyText(liveUrl, `live-${s.id}`)}>
+                                  <ContentCopyIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Reenviar enlace al chofer por WhatsApp">
+                                <IconButton size="small" color="success" onClick={() => sendLiveLinkWhatsApp(s)}>
+                                  <WhatsAppIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </>
+                          )}
+                          {s.traccar_device_id && (
+                            <Tooltip title="Ver historial / reproducción de ruta en mapa">
+                              <IconButton
+                                size="small"
+                                color="secondary"
+                                onClick={() => navigate(`/reports/route?deviceId=${s.traccar_device_id}`)}
+                              >
+                                <RouteIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                            <Tooltip title={copiedKey === `live-${s.id}` ? '¡Enlace copiado!' : 'Copiar enlace /live'}>
-                              <IconButton size="small" onClick={() => copyText(liveUrl, `live-${s.id}`)}>
-                                <ContentCopyIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Reenviar enlace al chofer por WhatsApp">
-                              <IconButton size="small" color="success" onClick={() => sendLiveLinkWhatsApp(s)}>
-                                <WhatsAppIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        )}
+                          )}
+                        </Box>
                       </TableCell>
                     </TableRow>
                   );

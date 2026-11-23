@@ -262,6 +262,25 @@ const LiveSharePage = () => {
     }
   };
 
+  const handleFitRoute = () => {
+    const mapInstance = mapRef.current;
+    const coords = Array.isArray(data?.trail) ? data.trail : [];
+    if (!mapInstance || coords.length < 2) {
+      handleRecenter();
+      return;
+    }
+    setAutoFollow(false);
+    const bounds = coords.reduce(
+      (b, coord) => b.extend(coord),
+      new maplibregl.LngLatBounds(coords[0], coords[0])
+    );
+    mapInstance.fitBounds(bounds, {
+      padding: { top: 80, bottom: 210, left: 40, right: 40 },
+      maxZoom: 17,
+      duration: 800,
+    });
+  };
+
   // Pantalla de enlace expirado o inválido
   if (errorState) {
     return (
@@ -317,6 +336,18 @@ const LiveSharePage = () => {
     ? `https://www.google.com/maps/dir/?api=1&destination=${pos.latitude},${pos.longitude}`
     : '#';
 
+  // Semáforo Anti-Trampa (Frescura de señal GPS)
+  const secSinceFix = typeof data?.secondsSinceLastFix === 'number' ? data.secondsSinceLastFix : null;
+  let signalBadge = { bg: 'rgba(22, 163, 74, 0.2)', color: '#4ade80', dot: '#4ade80', label: 'EN VIVO' };
+  if (secSinceFix != null && secSinceFix > 300) {
+    const mins = Math.floor(secSinceFix / 60);
+    signalBadge = { bg: 'rgba(220, 38, 38, 0.28)', color: '#fca5a5', dot: '#ef4444', label: `SEÑAL INTERRUMPIDA (${mins}m)` };
+  } else if (secSinceFix != null && secSinceFix > 90) {
+    const mins = Math.floor(secSinceFix / 60);
+    signalBadge = { bg: 'rgba(245, 158, 11, 0.28)', color: '#fcd34d', dot: '#f59e0b', label: `SEÑAL DEMORADA (${mins}m)` };
+  }
+  const hasRouteTrail = Array.isArray(data?.trail) && data.trail.length > 1;
+
   return (
     <div style={{
       position: 'fixed',
@@ -369,15 +400,15 @@ const LiveSharePage = () => {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '5px',
-            background: 'rgba(22, 163, 74, 0.2)',
-            color: '#4ade80',
+            background: signalBadge.bg,
+            color: signalBadge.color,
             padding: '2px 8px',
             borderRadius: '999px',
             fontSize: '11px',
             fontWeight: 700,
           }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
-            EN VIVO
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: signalBadge.dot, display: 'inline-block' }} />
+            {signalBadge.label}
           </span>
           {remainingSec != null && (
             <span style={{ fontSize: '11px', color: '#cbd5e1' }}>
@@ -424,6 +455,18 @@ const LiveSharePage = () => {
                     🔴 Motor OFF
                   </span>
                 )}
+                {pos?.batteryLevel != null && (
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    background: pos.batteryLevel <= 20 ? '#fee2e2' : '#f1f5f9',
+                    color: pos.batteryLevel <= 20 ? '#b91c1c' : '#334155',
+                    padding: '2px 7px',
+                    borderRadius: '999px',
+                  }}>
+                    🔋 {pos.batteryLevel}%
+                  </span>
+                )}
                 <span style={{
                   fontSize: '12px',
                   fontWeight: 800,
@@ -441,12 +484,19 @@ const LiveSharePage = () => {
               <strong>📍 Ubicación:</strong> {pos?.address || (pos ? `${pos.latitude.toFixed(5)}, ${pos.longitude.toFixed(5)}` : 'Sin señal GPS reciente')}
             </div>
 
-            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '12px' }}>
-              <strong>🕒 Último reporte:</strong>{' '}
-              {pos?.fixTime ? `${dayjs(pos.fixTime).format('DD/MM/YYYY hh:mm:ss A')} (${dayjs(pos.fixTime).fromNow()})` : 'Esperando señal...'}
+            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+              <span>
+                <strong>🕒 Último reporte:</strong>{' '}
+                {pos?.fixTime ? `${dayjs(pos.fixTime).format('DD/MM hh:mm:ss A')} (${dayjs(pos.fixTime).fromNow()})` : 'Esperando señal...'}
+              </span>
+              {typeof data?.distanceKm === 'number' && data.distanceKm > 0 && (
+                <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                  📏 {data.distanceKm} km
+                </span>
+              )}
             </div>
 
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '6px' }}>
               <button
                 type="button"
                 onClick={handleRecenter}
@@ -456,14 +506,33 @@ const LiveSharePage = () => {
                   color: autoFollow ? '#ffffff' : '#0f172a',
                   border: '1px solid #cbd5e1',
                   borderRadius: '8px',
-                  padding: '8px 6px',
-                  fontSize: '12px',
+                  padding: '8px 4px',
+                  fontSize: '11.5px',
                   fontWeight: 700,
                   cursor: 'pointer',
                 }}
               >
                 🎯 Centrar
               </button>
+              {hasRouteTrail && (
+                <button
+                  type="button"
+                  onClick={handleFitRoute}
+                  style={{
+                    flex: 1,
+                    background: '#fef2f2',
+                    color: '#b91c1c',
+                    border: '1px solid #fecaca',
+                    borderRadius: '8px',
+                    padding: '8px 4px',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  🛣️ Ver Ruta
+                </button>
+              )}
               <button
                 type="button"
                 onClick={toggleMapStyle}
@@ -473,8 +542,8 @@ const LiveSharePage = () => {
                   color: '#0f172a',
                   border: '1px solid #cbd5e1',
                   borderRadius: '8px',
-                  padding: '8px 6px',
-                  fontSize: '12px',
+                  padding: '8px 4px',
+                  fontSize: '11.5px',
                   fontWeight: 700,
                   cursor: 'pointer',
                 }}
@@ -486,18 +555,18 @@ const LiveSharePage = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
-                  flex: 1.2,
+                  flex: 1.1,
                   background: '#2563eb',
                   color: '#ffffff',
                   borderRadius: '8px',
-                  padding: '8px 6px',
-                  fontSize: '12px',
+                  padding: '8px 4px',
+                  fontSize: '11.5px',
                   fontWeight: 700,
                   textDecoration: 'none',
                   textAlign: 'center',
                 }}
               >
-                🧭 Cómo llegar
+                🧭 Ir
               </a>
             </div>
           </>
