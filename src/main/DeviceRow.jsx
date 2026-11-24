@@ -113,9 +113,10 @@ const DeviceRow = ({ data, index, style }) => {
 				<ListItemText
 					primary={
 						(Object.keys(veiculo).length &&
-						     item.attributes.veiculo.marca && item.contact &&`${item.attributes.veiculo.marca} ${item.attributes.veiculo.modelo} / Placa ${item.contact}`
-							|| `${item[devicePrimary]}`)
-						} //${item[devicePrimary]}
+							item.attributes.veiculo.marca && item.contact
+							&& `${item.contact} / ${[item.attributes.veiculo.marca, item.attributes.veiculo.modelo].filter(Boolean).join(' ')}`)
+						|| `${item[devicePrimary]}`
+					}
 					primaryTypographyProps={{ noWrap: true }}
 					secondary={secondaryText()}
 					secondaryTypographyProps={{ noWrap: true }}
