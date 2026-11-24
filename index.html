@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es" translate="no" class="notranslate">
 
 <head>
     <meta charset="utf-8" />
+    <meta name="google" content="notranslate" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="/public/icon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" sizes="180x180" />
@@ -21,6 +22,25 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" />
     <link rel="stylesheet" href="/public/css/styles.css">
     <script>
+        // Blindaje React contra mutaciones externas del DOM (Google Translate móvil / extensiones)
+        (function() {
+            if (typeof Node === 'function' && Node.prototype) {
+                var origRemoveChild = Node.prototype.removeChild;
+                Node.prototype.removeChild = function(child) {
+                    if (child && child.parentNode !== this) {
+                        return child;
+                    }
+                    return origRemoveChild.apply(this, arguments);
+                };
+                var origInsertBefore = Node.prototype.insertBefore;
+                Node.prototype.insertBefore = function(newNode, referenceNode) {
+                    if (referenceNode && referenceNode.parentNode !== this) {
+                        return newNode;
+                    }
+                    return origInsertBefore.apply(this, arguments);
+                };
+            }
+        })();
         (function() {
             try {
                 var host = window.location.hostname;
