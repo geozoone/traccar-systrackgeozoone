@@ -150,20 +150,27 @@ const FloatingStreetView = ({
 
   return createPortal(
     <div
+      onMouseDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
       style={{
         position: 'fixed',
-        left: `${geom.x}px`,
-        top: `${geom.y}px`,
-        width: minimized ? '290px' : `${geom.width}px`,
-        height: minimized ? 'auto' : `${geom.height}px`,
+        left: 0,
+        top: 0,
+        transform: `translate3d(${Math.round(geom.x)}px, ${Math.round(geom.y)}px, 0)`,
+        width: minimized ? '290px' : `${Math.round(geom.width)}px`,
+        height: minimized ? 'auto' : `${Math.round(geom.height)}px`,
         zIndex: 1350,
         backgroundColor: '#0f172a',
         borderRadius: '10px',
-        boxShadow: '0 14px 38px rgba(0, 0, 0, 0.45)',
-        border: '1px solid rgba(56, 189, 248, 0.45)',
+        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.35)',
+        border: '1px solid rgba(56, 189, 248, 0.55)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
+        isolation: 'isolate',
+        backfaceVisibility: 'hidden',
+        willChange: isInteracting ? 'transform' : 'auto',
         userSelect: isInteracting ? 'none' : 'auto',
       }}
     >
@@ -261,11 +268,28 @@ const FloatingStreetView = ({
               style={{
                 border: 0,
                 display: 'block',
-                pointerEvents: isInteracting ? 'none' : 'auto',
+                visibility: isInteracting ? 'hidden' : 'visible',
               }}
               allowFullScreen
               loading="lazy"
             />
+            {isInteracting && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: '#0f172a',
+                  color: '#94a3b8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                }}
+              >
+                Moviendo vista 360°...
+              </div>
+            )}
           </div>
 
           {/* Pie con dirección + tirador de redimensión */}
