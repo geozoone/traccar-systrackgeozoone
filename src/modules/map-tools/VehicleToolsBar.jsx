@@ -18,7 +18,6 @@ import {
 } from '@mui/material';
 import { geofencesActions } from '../../store';
 import { map } from '../../map/core/MapView';
-import FloatingStreetView from './FloatingStreetView';
 
 const RADIUS_OPTIONS = [50, 100, 200, 500];
 const SHARE_DURATION_OPTIONS = [
@@ -28,12 +27,11 @@ const SHARE_DURATION_OPTIONS = [
   { label: '7 Días', hours: 168 },
 ];
 
-const VehicleToolsBar = ({ device, position, address }) => {
+const VehicleToolsBar = ({ device, position, address, onOpenStreetView }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state) => state.session.user);
 
-  const [streetViewOpen, setStreetViewOpen] = useState(false);
   const [geofenceOpen, setGeofenceOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
@@ -250,9 +248,15 @@ const VehicleToolsBar = ({ device, position, address }) => {
       <div style={{ display: 'flex', gap: '5px', marginTop: '6px' }}>
         <button
           type="button"
-          onClick={() => setStreetViewOpen(true)}
+          onClick={() => {
+            if (onOpenStreetView) {
+              onOpenStreetView();
+            } else {
+              window.open(streetViewFullUrl, 'geozoone_streetview_window', 'width=960,height=680,resizable=yes');
+            }
+          }}
           style={btnStyle}
-          title="Ver cámara de calle 360° (Street View) en la posición y rumbo del vehículo"
+          title="Ver cámara de calle 360° (Street View) dentro de esta ficha"
         >
           🧍 Street View
         </button>
@@ -296,19 +300,6 @@ const VehicleToolsBar = ({ device, position, address }) => {
           </button>
         )}
       </div>
-
-      {/* 1. VENTANA FLOTANTE STREET VIEW 360° (Arrastrable, Redimensionable y Sin Bloquear el Mapa) */}
-      <FloatingStreetView
-        open={streetViewOpen}
-        onClose={() => setStreetViewOpen(false)}
-        deviceName={device.name}
-        course={course}
-        embedUrl={streetViewEmbedUrl}
-        fullUrl={streetViewFullUrl}
-        address={address}
-        lat={lat}
-        lon={lon}
-      />
 
       {/* 2. MODAL CREAR GEOCERCA AQUÍ MISMO */}
       <Dialog

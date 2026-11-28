@@ -91,6 +91,8 @@ const MapDevicePopup = ({ onOpenDetails }) => {
   // - minimized: si el usuario la compactó a una barra delgada para ver la ruta sin obstrucción.
   const [hidden, setHidden] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const [activeTab, setActiveTab] = useState('datos'); // 'datos' | 'streetview'
+  const [streetViewWide, setStreetViewWide] = useState(false);
   const [address, setAddress] = useState('');
   const [trailLoading, setTrailLoading] = useState(false);
   const [copiedImei, setCopiedImei] = useState(false);
@@ -329,6 +331,137 @@ const MapDevicePopup = ({ onOpenDetails }) => {
     </div>
   );
 
+  // URLs de Street View 360° orientadas al rumbo del vehículo
+  const svLat = Number(selectedPosition.latitude);
+  const svLon = Number(selectedPosition.longitude);
+  const svCourse = Math.round(Number(selectedPosition.course || 0));
+  const streetViewEmbedUrl = `https://maps.google.com/maps?q=&layer=c&cbll=${svLat},${svLon}&cbp=12,${svCourse},0,0,0&output=svembed`;
+  const streetViewFullUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${svLat},${svLon}&heading=${svCourse}&pitch=0&fov=90`;
+
+  const handlePopoutStreetView = () => {
+    window.open(
+      streetViewFullUrl,
+      'geozoone_streetview_window',
+      'width=960,height=680,menubar=no,toolbar=no,location=yes,resizable=yes,scrollbars=yes'
+    );
+  };
+
+  // Barra de pestañas Datos / Street View dentro de la misma ficha
+  const popupTabsBar = (
+    <div
+      style={{
+        display: 'flex',
+        borderBottom: '1px solid #e2e8f0',
+        backgroundColor: '#f1f5f9',
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setActiveTab('datos')}
+        style={{
+          flex: 1,
+          border: 'none',
+          borderBottom: activeTab === 'datos' ? '2.5px solid #0284c7' : '2.5px solid transparent',
+          backgroundColor: activeTab === 'datos' ? '#ffffff' : 'transparent',
+          color: activeTab === 'datos' ? '#0f172a' : '#64748b',
+          padding: '7px 8px',
+          fontSize: '12px',
+          fontWeight: 700,
+          cursor: 'pointer',
+        }}
+      >
+        📋 Datos
+      </button>
+      <button
+        type="button"
+        onClick={() => setActiveTab('streetview')}
+        style={{
+          flex: 1,
+          border: 'none',
+          borderBottom: activeTab === 'streetview' ? '2.5px solid #0284c7' : '2.5px solid transparent',
+          backgroundColor: activeTab === 'streetview' ? '#ffffff' : 'transparent',
+          color: activeTab === 'streetview' ? '#0284c7' : '#64748b',
+          padding: '7px 8px',
+          fontSize: '12px',
+          fontWeight: 700,
+          cursor: 'pointer',
+        }}
+      >
+        🧍 Street View 360°
+      </button>
+    </div>
+  );
+
+  // Panel embebido de Street View dentro de la misma ventana del vehículo
+  const streetViewPanel = (
+    <div style={{ padding: '10px 12px 12px' }}>
+      <div
+        style={{
+          width: '100%',
+          height: isMobile ? '240px' : (streetViewWide ? '360px' : '250px'),
+          borderRadius: '8px',
+          overflow: 'hidden',
+          backgroundColor: '#000',
+          border: '1px solid #cbd5e1',
+          marginBottom: '8px',
+        }}
+      >
+        <iframe
+          title={`Street View ${selectedDevice.name}`}
+          src={streetViewEmbedUrl}
+          width="100%"
+          height="100%"
+          style={{ border: 0, display: 'block' }}
+          allowFullScreen
+          loading="lazy"
+        />
+      </div>
+      <div style={{ fontSize: '11px', color: '#475569', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        📍 {address || `${svLat.toFixed(5)}, ${svLon.toFixed(5)}`} (Rumbo {svCourse}°)
+      </div>
+      <div style={{ display: 'flex', gap: '6px' }}>
+        {!isMobile && (
+          <button
+            type="button"
+            onClick={() => setStreetViewWide((w) => !w)}
+            style={{
+              flex: 1,
+              backgroundColor: '#f1f5f9',
+              color: '#0f172a',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              padding: '7px 8px',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+            title="Alternar ancho de la ventana para ver mejor Street View"
+          >
+            {streetViewWide ? '↔ Normal' : '↔ Ampliar'}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handlePopoutStreetView}
+          style={{
+            flex: 1.3,
+            backgroundColor: '#0284c7',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '6px',
+            padding: '7px 8px',
+            fontSize: '11.5px',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+          title="Abrir Street View en una ventana independiente de Chrome"
+        >
+          ↗ Desacoplar en ventana
+        </button>
+      </div>
+    </div>
+  );
+
   // -------------------------------------------------------------
   // CASO 1: Tarjeta Oculta temporalmente (Pastilla Flotante para reabrir)
   // -------------------------------------------------------------
@@ -496,8 +629,13 @@ const MapDevicePopup = ({ onOpenDetails }) => {
 
         {/* Contenido expandido con scroll si no está minimizado */}
         {!minimized && (
-          <div style={{ padding: '0 14px 14px', overflowY: 'auto', flex: 1 }}>
-            {identityBlock}
+          <>
+            {popupTabsBar}
+            {activeTab === 'streetview' ? (
+              streetViewPanel
+            ) : (
+              <div style={{ padding: '10px 14px 14px', overflowY: 'auto', flex: 1 }}>
+                {identityBlock}
 
             {/* Rejilla de métricas */}
             <div style={{
@@ -568,12 +706,19 @@ const MapDevicePopup = ({ onOpenDetails }) => {
               </button>
             </div>
             <GeoZooneErrorBoundary moduleName="VehicleToolsBar">
-              <VehicleToolsBar device={selectedDevice} position={selectedPosition} address={address} />
+              <VehicleToolsBar
+                device={selectedDevice}
+                position={selectedPosition}
+                address={address}
+                onOpenStreetView={() => setActiveTab('streetview')}
+              />
             </GeoZooneErrorBoundary>
             <GeoZooneErrorBoundary moduleName="QuickCommandBar">
               <QuickCommandBar device={selectedDevice} position={selectedPosition} />
             </GeoZooneErrorBoundary>
           </div>
+            )}
+          </>
         )}
       </div>
     );
@@ -590,7 +735,7 @@ const MapDevicePopup = ({ onOpenDetails }) => {
           bottom: 24,
           right: 24,
           zIndex: 1250,
-          width: minimized ? '260px' : '330px',
+          width: minimized ? '260px' : (activeTab === 'streetview' && streetViewWide ? '540px' : '330px'),
           backgroundColor: 'rgba(255, 255, 255, 0.97)',
           backdropFilter: 'blur(10px)',
           borderRadius: '12px',
@@ -685,8 +830,13 @@ const MapDevicePopup = ({ onOpenDetails }) => {
 
         {/* Contenido Completo de la Tarjeta */}
         {!minimized && (
-          <div style={{ padding: '12px' }}>
-            {identityBlock}
+          <>
+            {popupTabsBar}
+            {activeTab === 'streetview' ? (
+              streetViewPanel
+            ) : (
+              <div style={{ padding: '12px' }}>
+                {identityBlock}
 
             {/* Métrica de Estado y Motor */}
             <div style={{
@@ -766,12 +916,19 @@ const MapDevicePopup = ({ onOpenDetails }) => {
               </button>
             </div>
             <GeoZooneErrorBoundary moduleName="VehicleToolsBar">
-              <VehicleToolsBar device={selectedDevice} position={selectedPosition} address={address} />
+              <VehicleToolsBar
+                device={selectedDevice}
+                position={selectedPosition}
+                address={address}
+                onOpenStreetView={() => setActiveTab('streetview')}
+              />
             </GeoZooneErrorBoundary>
             <GeoZooneErrorBoundary moduleName="QuickCommandBar">
               <QuickCommandBar device={selectedDevice} position={selectedPosition} />
             </GeoZooneErrorBoundary>
           </div>
+            )}
+          </>
         )}
       </div>
     </Draggable>
