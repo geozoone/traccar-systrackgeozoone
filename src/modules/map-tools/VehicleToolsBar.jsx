@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { geofencesActions } from '../../store';
 import { map } from '../../map/core/MapView';
+import FloatingStreetView from './FloatingStreetView';
 
 const RADIUS_OPTIONS = [50, 100, 200, 500];
 const SHARE_DURATION_OPTIONS = [
@@ -296,48 +297,18 @@ const VehicleToolsBar = ({ device, position, address }) => {
         )}
       </div>
 
-      {/* 1. MODAL STREET VIEW 360° (Sin API Key) */}
-      <Dialog
+      {/* 1. VENTANA FLOTANTE STREET VIEW 360° (Arrastrable, Redimensionable y Sin Bloquear el Mapa) */}
+      <FloatingStreetView
         open={streetViewOpen}
         onClose={() => setStreetViewOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle sx={{ py: 1.5, px: 2, bgcolor: '#0f172a', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: '14px' }}>
-            🧍 Vista de Calle 360° — {device.name} (Rumbo: {course}°)
-          </Typography>
-          <Button
-            size="small"
-            variant="outlined"
-            sx={{ color: '#38bdf8', borderColor: '#38bdf8', textTransform: 'none', fontSize: '11px' }}
-            href={streetViewFullUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Abrir en Google Maps ↗
-          </Button>
-        </DialogTitle>
-        <DialogContent sx={{ p: 0, height: { xs: '340px', md: '450px' }, bgcolor: '#000' }}>
-          <iframe
-            title={`Street View ${device.name}`}
-            src={streetViewEmbedUrl}
-            width="100%"
-            height="100%"
-            style={{ border: 0 }}
-            allowFullScreen
-            loading="lazy"
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 2, py: 1, justifyContent: 'space-between', bgcolor: '#f8fafc' }}>
-          <Typography variant="caption" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
-            📍 {address || `${lat.toFixed(5)}, ${lon.toFixed(5)}`}
-          </Typography>
-          <Button onClick={() => setStreetViewOpen(false)} variant="contained" size="small" sx={{ bgcolor: '#0f172a' }}>
-            Cerrar
-          </Button>
-        </DialogActions>
-      </Dialog>
+        deviceName={device.name}
+        course={course}
+        embedUrl={streetViewEmbedUrl}
+        fullUrl={streetViewFullUrl}
+        address={address}
+        lat={lat}
+        lon={lon}
+      />
 
       {/* 2. MODAL CREAR GEOCERCA AQUÍ MISMO */}
       <Dialog
